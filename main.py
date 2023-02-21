@@ -81,17 +81,9 @@ class Application(tk.Frame):
             with open(file_path, 'r') as f:
                 proxies = f.read().splitlines()
 
-            def human_behavior():
-                # Définit une liste de temps d'attente en secondes pour simuler le comportement humain
-                delays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-                # Définit un temps de pause en secondes pour simuler une pause humaine
-                pause_time = 10
-                # Boucle infinie pour simuler un comportement humain
-                while True:
-                    # Attend un temps d'attente aléatoire
-                    time.sleep(random.choice(delays))
-                    # Pause pour simuler une pause humaine
-                    time.sleep(pause_time)
+            def simulate_human():
+                delay = random.uniform(0.5, 3.0)
+                time.sleep(delay)
 
             # Crée une fonction qui envoie une requête à une URL cible en utilisant un proxy aléatoire
             def send_request(url, timeout):
@@ -103,7 +95,7 @@ class Application(tk.Frame):
                     }
                     try:
                         # Appelle la fonction human_behavior pour simuler le comportement humain
-                        human_behavior
+                        simulate_human()
                         response = requests.get(url, headers=headers, proxies=proxy, timeout=timeout)
                         if response.status_code == 200:
                             print('Requête envoyée avec succès en utilisant le proxy', proxy)
