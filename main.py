@@ -60,6 +60,7 @@ class Application(tk.Frame):
         # Bouton pour lancer l'exécution
         self.run_button = tk.Button(self, text="Lancer", command=self.run_execution)
         self.run_button.pack()
+
         
 
     def choose_file(self):
@@ -81,10 +82,6 @@ class Application(tk.Frame):
             with open(file_path, 'r') as f:
                 proxies = f.read().splitlines()
 
-            def simulate_human():
-                delay = random.uniform(0.5, 3.0)
-                time.sleep(delay)
-
             # Crée une fonction qui envoie une requête à une URL cible en utilisant un proxy aléatoire
             def send_request(url, timeout):
                 session = requests.Session()
@@ -95,7 +92,28 @@ class Application(tk.Frame):
                     }
                     try:
                         # Appelle la fonction human_behavior pour simuler le comportement humain
-                        simulate_human()
+                        def simulate_human():
+                            # Définir les paramètres pour la simulation du comportement humain
+                            avg_time_on_page = 30  # Temps moyen en secondes passé sur une page Web
+                            std_dev_time_on_page = 10  # Écart type pour le temps passé sur une page Web
+                            prob_of_new_search = 0.2  # Probabilité qu'une nouvelle recherche soit lancée après une page
+                            prob_of_distraction = 0.1  # Probabilité d'être distrait par une autre tâche
+
+                            # Simuler le temps passé sur la page
+                            time_on_page = int(random.gauss(avg_time_on_page, std_dev_time_on_page))
+                            time.sleep(time_on_page)
+
+                            # Simuler le lancement d'une nouvelle recherche
+                            if random.random() < prob_of_new_search:
+                                # Attendre un court laps de temps avant de lancer la nouvelle recherche
+                                time.sleep(random.uniform(1, 5))
+
+                            # Simuler une distraction
+                            if random.random() < prob_of_distraction:
+                                # Attendre un court laps de temps avant de reprendre la navigation
+                                time.sleep(random.uniform(1, 5))
+
+                        simulate_human()        
                         response = requests.get(url, headers=headers, proxies=proxy, timeout=timeout)
                         if response.status_code == 200:
                             print('Requête envoyée avec succès en utilisant le proxy', proxy)
