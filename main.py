@@ -1,139 +1,227 @@
-import threading
-import tkinter as tk
 import requests
-import random
+from streamlink import Streamlink
+import sys
 import time
+import random
+from random import shuffle
+from fake_useragent import UserAgent
+import linecache
+import tkinter as tk
 from tkinter import filedialog
+from threading import Thread
 
-headers = {
-'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-'Accept-Encoding': 'gzip, deflate, br',
-'Referer': 'https://www.twitch.tv/'
-}
+channel_url = ""
+proxies_file = "good_proxy.txt"
+processes = []
+max_nb_of_threads = 1000
 
-class Application(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.master = master
-        self.pack()
-        self.create_widgets()
+all_proxies = []
+nb_of_proxies = 0
 
-    def create_widgets(self):
-        # Label pour le fichier de liste de proxy
-        self.file_label = tk.Label(self, text="Fichier de liste de proxy :")
-        self.file_label.pack()
-        
-        # Entry pour le chemin du fichier de liste de proxy
-        self.file_path_entry = tk.Entry(self)
-        self.file_path_entry.pack()
+# Session creating for request
+ua = UserAgent()
+session = Streamlink()
+session.set_option("http-headers", {'User-Agent': ua.random, "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93"})
 
-        # Bouton pour choisir le fichier de liste de proxy
-        self.file_button = tk.Button(self, text="Parcourir", command=self.choose_file)
-        self.file_button.pack()
+class ViewerBot:
+    def __init__(self, nb_of_threads, proxies_file, channel_name):
+        self.nb_of_threads = nb_of_threads
+        self.proxies_file = proxies_file
+        self.channel_name = channel_name
 
-        self.file_label = tk.Label(self, text="Nom de la chaîne Twitch :")
-        self.file_label.pack()
 
-        self.name = tk.Entry(self)
-        self.name.pack()
+    def print_exception(self):
+        exc_type, exc_obj, tb = sys.exc_info()
+        f = tb.tb_frame
+        lineno = tb.tb_lineno
+        filename = f.f_code.co_filename
+        linecache.checkcache(filename)
+        line = linecache.getline(filename, lineno, f.f_globals)
+        print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
 
-        # Label pour le nombre de threads
-        self.threads_label = tk.Label(self, text="Nombre de threads :")
-        self.threads_label.pack()
 
-        # Entry pour le nombre de threads
-        self.threads_entry = tk.Entry(self)
-        self.threads_entry.pack()
-
-        # Label pour le timeout des requêtes
-        self.timeout_label = tk.Label(self, text="Timeout des requêtes (en secondes) :")
-        self.timeout_label.pack()
-
-        # Entry pour le timeout des requêtes
-        self.timeout_entry = tk.Entry(self)
-        self.timeout_entry.pack()
-
-        # Label pour afficher le nombre de threads en cours d'exécution
-        self.threads_running_label = tk.Label(self, text="")
-        self.threads_running_label.pack()
-
-        # Bouton pour lancer l'exécution
-        self.run_button = tk.Button(self, text="Lancer", command=self.run_execution)
-        self.run_button.pack()
-
-        
-
-    def choose_file(self):
-        # Ouvre la boîte de dialogue pour choisir le fichier
-        file_path = filedialog.askopenfilename()
-        # Met à jour l'Entry pour afficher le chemin du fichier
-        self.file_path_entry.delete(0, tk.END)
-        self.file_path_entry.insert(0, file_path)
-
-    def run_execution(self):
+    def get_proxies(self):
+        # Reading the list of proxies
+        global nb_of_proxies
         try:
-            # Obtient le chemin du fichier de liste de proxy, le nom de la chaîne Twitch, le nombre de threads et le timeout
-            file_path = self.file_path_entry.get()
-            name = self.name.get()
-            num_threads = int(self.threads_entry.get())
-            timeout = float(self.timeout_entry.get())
+            with open(self.proxies_file) as f:
+                lines = [line.rstrip("\n") for line in f]
+        except IOError as e:
+            print("An error has occurred while trying to read the list of proxies: %s" % e.strerror)
+            sys.exit(1)
 
-            # Lit le fichier de liste de proxy et crée une liste de proxies
-            with open(file_path, 'r') as f:
-                proxies = f.read().splitlines()
+        nb_of_proxies = len(lines)
+        return lines
 
-            # Crée une fonction qui envoie une requête à une URL cible en utilisant un proxy aléatoire
-            def send_request(url, timeout):
-                session = requests.Session()
-                session.keep_alive = True
-                while True:
-                    proxy = {
-                        'http': 'http://' + random.choice(proxies)
-                    }
-                    try:
-                        # Appelle la fonction human_behavior pour simuler le comportement humain
-                        def simulate_human():
-                            # Définir les paramètres pour la simulation du comportement humain
-                            avg_time_on_page = 30  # Temps moyen en secondes passé sur une page Web
-                            std_dev_time_on_page = 10  # Écart type pour le temps passé sur une page Web
-                            prob_of_new_search = 0.2  # Probabilité qu'une nouvelle recherche soit lancée après une page
-                            prob_of_distraction = 0.1  # Probabilité d'être distrait par une autre tâche
 
-                            # Simuler le temps passé sur la page
-                            time_on_page = int(random.gauss(avg_time_on_page, std_dev_time_on_page))
-                            time.sleep(time_on_page)
+    def get_url(self):
+        url = ""
+        try:
+            streams = session.streams(self.channel_url)
+            try:
+                url = streams['audio_only'].url
+                print(f"URL : {url[:30]}...\n")
+            except:
+                url = streams['worst'].url
+                print(f"URL : {url[:30]}...\n")
 
-                            # Simuler le lancement d'une nouvelle recherche
-                            if random.random() < prob_of_new_search:
-                                # Attendre un court laps de temps avant de lancer la nouvelle recherche
-                                time.sleep(random.uniform(1, 5))
+        except:
+            pass
+        return url
 
-                            # Simuler une distraction
-                            if random.random() < prob_of_distraction:
-                                # Attendre un court laps de temps avant de reprendre la navigation
-                                time.sleep(random.uniform(1, 5))
+    def open_url(self, proxy_data):
+        try:
+            global all_proxies
+            headers = {'User-Agent': ua.random}
+            current_index = all_proxies.index(proxy_data)
 
-                        simulate_human()        
-                        response = requests.get(url, headers=headers, proxies=proxy, timeout=timeout)
-                        if response.status_code == 200:
-                            print('Requête envoyée avec succès en utilisant le proxy', proxy)
-                        else:
-                            print('La requête a échoué en utilisant le proxy', proxy)
-                    except requests.exceptions.RequestException as e:
-                        print(f"Une erreur s'est produite: {e}")
-          
-            threads = []
-            for i in range(num_threads):
-                t = threading.Thread(target=send_request, args=(f'https://www.twitch.tv/{name}',timeout))
-                threads.append(t)
-                t.start()
+            if proxy_data['url'] == "":
+                proxy_data['url'] = self.get_url()
+            current_url = proxy_data['url']
+            try:
+                if time.time() - proxy_data['time'] >= random.randint(1, 5):
+                    current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
+                    with requests.Session() as s:
+                        response = s.head(current_url, proxies=current_proxy, headers=headers)
+                    print(f"Sent HEAD request with {current_proxy['http']} | {response.status_code} | {response.request} | {response}")
+                    proxy_data['time'] = time.time()
+                    all_proxies[current_index] = proxy_data
+            except:
+                print("Connection Error!")
 
-            # Attends que tous les threads aient terminé
-            for t in threads:
-                t.join()
-        except Exception as e:
-            print(f"Une erreur s'est produite: {e}")
+        except (KeyboardInterrupt, SystemExit):
+            sys.exit()
 
-root = tk.Tk()
-app = Application(master=root)
-app.mainloop()
+    def mainmain(self):
+        self.channel_url = "https://www.twitch.tv/" + self.channel_name
+        proxies = self.get_proxies()
+
+        for p in proxies:
+            all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+
+        shuffle(all_proxies)
+        list_of_all_proxies = all_proxies
+        current_proxy_index = 0
+
+        while True:
+            try:
+                for i in range(0, max_nb_of_threads):
+                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
+                    threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
+                    threaded.start()
+            except:
+                self.print_exception()
+            shuffle(all_proxies)
+            time.sleep(5)
+
+class ViewerBotGUI:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("ViewerBot")
+        
+        # Label for number of threads
+        nb_threads_label = tk.Label(self.window, text="Number of threads:")
+        nb_threads_label.grid(column=0, row=0, padx=10, pady=10)
+        
+        # Entry for number of threads
+        self.nb_threads_entry = tk.Entry(self.window, width=10)
+        self.nb_threads_entry.insert(tk.END, "1000")
+        self.nb_threads_entry.grid(column=1, row=0, padx=10, pady=10)
+        
+        # Label for proxy file
+        proxy_file_label = tk.Label(self.window, text="Proxy file:")
+        proxy_file_label.grid(column=0, row=1, padx=10, pady=10)
+        
+        # Button to select proxy file
+        self.proxy_file_button = tk.Button(self.window, text="Select file", command=self.select_proxy_file)
+        self.proxy_file_button.grid(column=1, row=1, padx=10, pady=10)
+        
+        # Label for Twitch channel name
+        channel_name_label = tk.Label(self.window, text="Twitch channel name:")
+        channel_name_label.grid(column=0, row=2, padx=10, pady=10)
+        
+        # Entry for Twitch channel name
+        self.channel_name_entry = tk.Entry(self.window, width=20)
+        self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
+        
+        # Button to start the bot
+        start_button = tk.Button(self.window, text="Start bot")
+        start_button.grid(column=0, row=3, padx=10, pady=10)
+        start_button.config(command=self.start_bot)
+        
+        # Button to stop the bot
+        stop_button = tk.Button(self.window, text="Stop", bg="red", state="normal")
+        stop_button.grid(column=1, row=3, padx=10, pady=10)
+        stop_button.config(command=self.stop_bot)
+        
+        # Label for status
+        status_label = tk.Label(self.window, text="Status: Stopped")
+        status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
+        
+        # Variables for status and threads
+        self.status = "Stopped"
+        self.threads = []
+        
+        self.window.mainloop()
+        
+    def select_proxy_file(self):
+        self.proxy_file = filedialog.askopenfilename(initialdir="/", title="Select file", filetypes=[("Text Files", "*.txt")])
+        
+    def start_bot(self):
+        if self.status == "Stopped":
+            nb_of_threads = self.nb_threads_entry.get()
+            self.channel_name = self.channel_name_entry.get()
+            self.bot = ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
+            self.thread = Thread(target=self.bot.mainmain)
+            self.thread.daemon = True
+            self.thread.start()
+            
+            # Change status and disable/enable buttons
+            self.status = "Running"
+            self.proxy_file_button.config(state="disabled")
+            self.nb_threads_entry.config(state="disabled")
+            self.channel_name_entry.config(state="disabled")
+            self.window.update()
+            
+            # Update status label and buttons
+            status_label = tk.Label(self.window, text="Status: Running")
+            status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
+            
+            start_button = self.window.nametowidget("start_button")
+            start_button.config(state="disabled")
+            
+            stop_button = self.window.nametowidget("stop_button")
+            stop_button.config(state="normal")
+            
+            # Append thread to list of threads
+            self.threads.append(self.thread)
+        
+    def stop_bot(self):
+        if self.status == "Running":
+            # Change status and disable/enable buttons
+            self.status = "Stopped"
+            self.proxy_file_button.config(state="normal")
+            self.nb_threads_entry.config(state="normal")
+            self.channel_name_entry.config(state="normal")
+            self.window.update()
+            
+            # Update status label and buttons
+            status_label = tk.Label(self.window, text="Status: Stopped")
+            status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
+            
+            start_button = self.window.nametowidget("start_button")
+            start_button.config(state="normal")
+            
+            stop_button = self.window.nametowidget("stop_button")
+            stop_button.config(state="disabled")
+            
+            # Stop all threads
+            for thread in self.threads:
+                thread.stop()
+            
+
+            
+
+if __name__ == '__main__':
+    ViewerBotGUI = ViewerBotGUI()
+
