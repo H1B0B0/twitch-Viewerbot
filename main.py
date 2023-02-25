@@ -9,11 +9,12 @@ import linecache
 import tkinter as tk
 from tkinter import filedialog
 from threading import Thread
+from tkinter import ttk
+import requests
 
 channel_url = ""
 proxies_file = "good_proxy.txt"
 processes = []
-max_nb_of_threads = 1000
 
 all_proxies = []
 nb_of_proxies = 0
@@ -54,6 +55,7 @@ class ViewerBot:
         return lines
 
 
+
     def get_url(self):
         url = ""
         try:
@@ -68,6 +70,7 @@ class ViewerBot:
         except:
             pass
         return url
+    
 
     def open_url(self, proxy_data):
         try:
@@ -82,7 +85,7 @@ class ViewerBot:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
-                        response = s.head(current_url, proxies=current_proxy, headers=headers)
+                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
                     print(f"Sent HEAD request with {current_proxy['http']} | {response.status_code} | {response.request} | {response}")
                     proxy_data['time'] = time.time()
                     all_proxies[current_index] = proxy_data
@@ -91,6 +94,9 @@ class ViewerBot:
 
         except (KeyboardInterrupt, SystemExit):
             sys.exit()
+
+    def stop(self):
+        sys.exit()
 
     def mainmain(self):
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
@@ -106,56 +112,59 @@ class ViewerBot:
         while True:
             try:
                 for i in range(0, max_nb_of_threads):
-                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
+                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))]))
                     threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                     threaded.start()
             except:
                 self.print_exception()
             shuffle(all_proxies)
-            time.sleep(5)
 
+        
 class ViewerBotGUI:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("ViewerBot")
+
+        self.window.tk.call("source", "azure.tcl")
+        self.window.tk.call("set_theme", "dark")
+        self.window.wm_iconbitmap('R.ico')
         
         # Label for number of threads
-        nb_threads_label = tk.Label(self.window, text="Number of threads:")
+        nb_threads_label = ttk.Label(self.window, text="Number of threads:")
         nb_threads_label.grid(column=0, row=0, padx=10, pady=10)
         
         # Entry for number of threads
-        self.nb_threads_entry = tk.Entry(self.window, width=10)
-        self.nb_threads_entry.insert(tk.END, "1000")
+        self.nb_threads_entry = ttk.Entry(self.window, width=10)
         self.nb_threads_entry.grid(column=1, row=0, padx=10, pady=10)
         
         # Label for proxy file
-        proxy_file_label = tk.Label(self.window, text="Proxy file:")
+        proxy_file_label = ttk.Label(self.window, text="Proxy file:")
         proxy_file_label.grid(column=0, row=1, padx=10, pady=10)
         
         # Button to select proxy file
-        self.proxy_file_button = tk.Button(self.window, text="Select file", command=self.select_proxy_file)
+        self.proxy_file_button = ttk.Button(self.window, style="Accent.TButton",text="Select file", command=self.select_proxy_file)
         self.proxy_file_button.grid(column=1, row=1, padx=10, pady=10)
         
         # Label for Twitch channel name
-        channel_name_label = tk.Label(self.window, text="Twitch channel name:")
+        channel_name_label = ttk.Label(self.window, text="Twitch channel name:")
         channel_name_label.grid(column=0, row=2, padx=10, pady=10)
         
         # Entry for Twitch channel name
-        self.channel_name_entry = tk.Entry(self.window, width=20)
+        self.channel_name_entry = ttk.Entry(self.window, width=20)
         self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
         
         # Button to start the bot
-        start_button = tk.Button(self.window, text="Start bot")
+        start_button = ttk.Button(self.window, style="Accent.TButton",text="Start bot")
         start_button.grid(column=0, row=3, padx=10, pady=10)
         start_button.config(command=self.start_bot)
         
         # Button to stop the bot
-        stop_button = tk.Button(self.window, text="Stop", bg="red", state="normal")
+        stop_button = ttk.Button(self.window, style="Accent.TButton",text="Stop", state="normal")
         stop_button.grid(column=1, row=3, padx=10, pady=10)
         stop_button.config(command=self.stop_bot)
         
         # Label for status
-        status_label = tk.Label(self.window, text="Status: Stopped")
+        status_label = ttk.Label(self.window, text="Status: Stopped")
         status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
         
         # Variables for status and threads
@@ -169,13 +178,19 @@ class ViewerBotGUI:
         
     def start_bot(self):
         if self.status == "Stopped":
+            global max_nb_of_threads
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
             self.bot = ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
+            ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
+            ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
             self.thread = Thread(target=self.bot.mainmain)
             self.thread.daemon = True
             self.thread.start()
-            
+
+            max_nb_of_threads = nb_of_threads
+            max_nb_of_threads = int(max_nb_of_threads)
+            max_nb_of_threads = max_nb_of_threads*10
             # Change status and disable/enable buttons
             self.status = "Running"
             self.proxy_file_button.config(state="disabled")
@@ -184,7 +199,7 @@ class ViewerBotGUI:
             self.window.update()
             
             # Update status label and buttons
-            status_label = tk.Label(self.window, text="Status: Running")
+            status_label = ttk.Label(self.window, text="Status: Running")
             status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
             
             start_button = self.window.nametowidget("start_button")
@@ -195,6 +210,7 @@ class ViewerBotGUI:
             
             # Append thread to list of threads
             self.threads.append(self.thread)
+            
         
     def stop_bot(self):
         if self.status == "Running":
@@ -204,24 +220,21 @@ class ViewerBotGUI:
             self.nb_threads_entry.config(state="normal")
             self.channel_name_entry.config(state="normal")
             self.window.update()
+
             
             # Update status label and buttons
-            status_label = tk.Label(self.window, text="Status: Stopped")
+            status_label = ttk.Label(self.window, text="Status: Stopped")
             status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
             
-            start_button = self.window.nametowidget("start_button")
-            start_button.config(state="normal")
-            
-            stop_button = self.window.nametowidget("stop_button")
-            stop_button.config(state="disabled")
             
             # Stop all threads
             for thread in self.threads:
                 thread.stop()
+
+            self.bot.stop()
             
 
             
 
 if __name__ == '__main__':
     ViewerBotGUI = ViewerBotGUI()
-
