@@ -26,9 +26,8 @@ session = Streamlink()
 session.set_option("http-headers", {'User-Agent': ua.random, "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93"})
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, proxies_file, channel_name):
+    def __init__(self, nb_of_threads, channel_name):
         self.nb_of_threads = nb_of_threads
-        self.proxies_file = proxies_file
         self.channel_name = channel_name
 
 
@@ -43,18 +42,16 @@ class ViewerBot:
 
 
     def get_proxies(self):
-        # Reading the list of proxies
-        global nb_of_proxies
-        try:
-            with open(self.proxies_file) as f:
-                lines = [line.rstrip("\n") for line in f]
-        except IOError as e:
-            print("An error has occurred while trying to read the list of proxies: %s" % e.strerror)
-            sys.exit(1)
-
-        nb_of_proxies = len(lines)
-        return lines
-
+        while True:
+            try:
+                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
+                if response.status_code == 200:
+                    lines = response.text.split("\n")
+                    lines = [line.strip() for line in lines if line.strip()]
+                    return lines
+            except:
+                pass
+            time.sleep(5)
 
 
     def get_url(self):
@@ -101,23 +98,24 @@ class ViewerBot:
 
     def mainmain(self):
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
-        proxies = self.get_proxies()
-
-        for p in proxies:
-            all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
-
-        list_of_all_proxies = all_proxies
-        current_proxy_index = 0
 
         while True:
-            try:
-                for i in range(0, max_nb_of_threads):
-                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
-                    threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
-                    threaded.start()
-            except:
-                self.print_exception()
+            proxies = self.get_proxies()
+
+            for p in proxies:
+                all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+
+            for i in range(0, int(self.nb_of_threads)):
+                threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
+                threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
+                threaded.start()
+
             shuffle(all_proxies)
+
+
+
+
+
 
         
 class ViewerBotGUI:
@@ -137,13 +135,6 @@ class ViewerBotGUI:
         self.nb_threads_entry = ttk.Entry(self.window, width=10)
         self.nb_threads_entry.grid(column=1, row=0, padx=10, pady=10)
         
-        # Label for proxy file
-        proxy_file_label = ttk.Label(self.window, text="Proxy file:")
-        proxy_file_label.grid(column=0, row=1, padx=10, pady=10)
-        
-        # Button to select proxy file
-        self.proxy_file_button = ttk.Button(self.window, style="Accent.TButton",text="Select file", command=self.select_proxy_file)
-        self.proxy_file_button.grid(column=1, row=1, padx=10, pady=10)
         
         # Label for Twitch channel name
         channel_name_label = ttk.Label(self.window, text="Twitch channel name:")
@@ -173,17 +164,14 @@ class ViewerBotGUI:
         
         self.window.mainloop()
         
-    def select_proxy_file(self):
-        self.proxy_file = filedialog.askopenfilename(initialdir="/", title="Select file", filetypes=[("Text Files", "*.txt")])
-        
     def start_bot(self):
         if self.status == "Stopped":
             global max_nb_of_threads
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
-            self.bot = ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
-            ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
-            ViewerBot(nb_of_threads, self.proxy_file, self.channel_name)
+            self.bot = ViewerBot(nb_of_threads, self.channel_name)
+            ViewerBot(nb_of_threads, self.channel_name)
+            ViewerBot(nb_of_threads, self.channel_name)
             self.thread = Thread(target=self.bot.mainmain)
             self.thread.daemon = True
             self.thread.start()
@@ -193,7 +181,6 @@ class ViewerBotGUI:
             max_nb_of_threads = max_nb_of_threads*10
             # Change status and disable/enable buttons
             self.status = "Running"
-            self.proxy_file_button.config(state="disabled")
             self.nb_threads_entry.config(state="disabled")
             self.channel_name_entry.config(state="disabled")
             self.window.update()
@@ -210,7 +197,6 @@ class ViewerBotGUI:
         if self.status == "Running":
             # Change status and disable/enable buttons
             self.status = "Stopped"
-            self.proxy_file_button.config(state="normal")
             self.nb_threads_entry.config(state="normal")
             self.channel_name_entry.config(state="normal")
             self.window.update()

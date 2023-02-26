@@ -24,7 +24,6 @@ pip install -r requirements.txt
 3. Fill in the following details in the GUI:
 
 * Number of threads: Enter the number of threads you want to use. Each thread represents a single viewer.
-* Proxy file: Select a file containing a list of proxies to be used.
 * Twitch channel name: Enter the name of the Twitch channel you want to generate views for.
 
 4. Click the "Start bot" button to start the script.
