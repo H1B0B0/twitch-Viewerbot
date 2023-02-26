@@ -202,12 +202,6 @@ class ViewerBotGUI:
             status_label = ttk.Label(self.window, text="Status: Running")
             status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
             
-            start_button = self.window.nametowidget("start_button")
-            start_button.config(state="disabled")
-            
-            stop_button = self.window.nametowidget("stop_button")
-            stop_button.config(state="normal")
-            
             # Append thread to list of threads
             self.threads.append(self.thread)
             
@@ -232,9 +226,7 @@ class ViewerBotGUI:
                 thread.stop()
 
             self.bot.stop()
-            
-
-            
+                      
 
 if __name__ == '__main__':
     ViewerBotGUI = ViewerBotGUI()
