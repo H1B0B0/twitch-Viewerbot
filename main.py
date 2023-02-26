@@ -1,16 +1,17 @@
-import requests
-from streamlink import Streamlink
+import os
 import sys
 import time
 import random
-from random import shuffle
-from fake_useragent import UserAgent
+import requests
 import linecache
 import tkinter as tk
-from tkinter import filedialog
-from threading import Thread
 from tkinter import ttk
-import requests
+from random import shuffle
+from threading import Thread
+from tkinter import filedialog
+from streamlink import Streamlink
+from fake_useragent import UserAgent
+
 
 channel_url = ""
 proxies_file = "good_proxy.txt"
@@ -125,7 +126,7 @@ class ViewerBotGUI:
         self.window = tk.Tk()
         self.window.title("ViewerBot")
 
-        self.window.tk.call("source", "azure.tcl")
+        self.window.tk.call("source", os.path.abspath("azure.tcl"))
         self.window.tk.call("set_theme", "dark")
         self.window.wm_iconbitmap('R.ico')
         
