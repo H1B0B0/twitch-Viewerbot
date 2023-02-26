@@ -106,14 +106,13 @@ class ViewerBot:
         for p in proxies:
             all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
-        shuffle(all_proxies)
         list_of_all_proxies = all_proxies
         current_proxy_index = 0
 
         while True:
             try:
                 for i in range(0, max_nb_of_threads):
-                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))]))
+                    threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
                     threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                     threaded.start()
             except:
