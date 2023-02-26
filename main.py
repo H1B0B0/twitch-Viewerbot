@@ -128,7 +128,7 @@ class ViewerBotGUI:
 
         self.window.tk.call("source", os.path.abspath("azure.tcl"))
         self.window.tk.call("set_theme", "dark")
-        self.window.wm_iconbitmap('theme/R.ico')
+        self.window.wm_iconbitmap('R.ico')
         
         # Label for number of threads
         nb_threads_label = ttk.Label(self.window, text="Number of threads:")
