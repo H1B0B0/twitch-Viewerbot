@@ -10,6 +10,9 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 * fake_useragent
 * tkinter
 
+```shell
+pip install -r requirements.txt
+'''
 ## Usage
 
 1. Install the requirements:
