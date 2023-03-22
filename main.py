@@ -8,9 +8,9 @@ import tkinter as tk
 from tkinter import ttk
 from random import shuffle
 from threading import Thread
-from tkinter import filedialog
 from streamlink import Streamlink
 from fake_useragent import UserAgent
+
 
 
 channel_url = ""
@@ -23,12 +23,24 @@ nb_of_proxies = 0
 # Session creating for request
 ua = UserAgent()
 session = Streamlink()
-session.set_option("http-headers", {'User-Agent': ua.random, "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93"})
+session.set_option("http-headers", {
+    "Accept-Language": "en-US,en;q=0.5",
+    "Connection": "keep-alive",
+    "DNT": "1",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": ua.random,
+    "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93",
+    "Referer": "https://www.google.com/"
+})
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, channel_name):
+    def __init__(self, nb_of_threads, channel_name, label, stop=False):
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
+        self.nb_requests = 0
+        self.nb_requests_label = label
+        self.stop_event = stop
+
 
 
     def print_exception(self):
@@ -51,7 +63,6 @@ class ViewerBot:
                     return lines
             except:
                 pass
-            time.sleep(5)
 
 
     def get_url(self):
@@ -60,11 +71,8 @@ class ViewerBot:
             streams = session.streams(self.channel_url)
             try:
                 url = streams['audio_only'].url
-                print(f"URL : {url[:30]}...\n")
             except:
                 url = streams['worst'].url
-                print(f"URL : {url[:30]}...\n")
-
         except:
             pass
         return url
@@ -85,47 +93,52 @@ class ViewerBot:
                     with requests.Session() as s:
                         response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
                     print(f"Sent HEAD request with {current_proxy['http']} | {response.status_code} | {response.request} | {response}")
+                    self.nb_requests += 1
+                    self.nb_requests_label.config(text=f"Number of requests: {self.nb_requests}")
                     proxy_data['time'] = time.time()
                     all_proxies[current_index] = proxy_data
             except:
                 print("Connection Error!")
+                if proxy_data in all_proxies:
+                    all_proxies.remove(proxy_data)
 
         except (KeyboardInterrupt, SystemExit):
-            sys.exit()
+            pass
+
 
     def stop(self):
-        sys.exit()
+        self.stop_event = True
+
 
     def mainmain(self):
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
 
-        while True:
+        while not self.stop_event:
             proxies = self.get_proxies()
 
             for p in proxies:
                 all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
             for i in range(0, int(self.nb_of_threads)):
-                threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
-                threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
-                threaded.start()
+                self.threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
+                self.threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
+                self.threaded.start()
 
             shuffle(all_proxies)
-
-
-
-
-
 
         
 class ViewerBotGUI:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("ViewerBot")
-
-        self.window.tk.call("source", os.path.abspath("azure.tcl"))
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        theme_file = os.path.join(current_dir, "azure_theme", "azure.tcl")
+        self.window.tk.call("source", theme_file)
         self.window.tk.call("set_theme", "dark")
-        self.window.wm_iconbitmap('R.ico')
+        self.window.wm_iconbitmap(f"{current_dir}/R.ico")
+        self.nb_requests_label = ttk.Label(self.window, text="Number of requests: 0")
+        self.nb_requests_label.grid(column=0, row=5, columnspan=2, padx=10, pady=10)
+        self.nb_requests = 0
         
         # Label for number of threads
         nb_threads_label = ttk.Label(self.window, text="Number of threads:")
@@ -169,13 +182,10 @@ class ViewerBotGUI:
             global max_nb_of_threads
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
-            self.bot = ViewerBot(nb_of_threads, self.channel_name)
-            ViewerBot(nb_of_threads, self.channel_name)
-            ViewerBot(nb_of_threads, self.channel_name)
+            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , )
             self.thread = Thread(target=self.bot.mainmain)
             self.thread.daemon = True
             self.thread.start()
-
             max_nb_of_threads = nb_of_threads
             max_nb_of_threads = int(max_nb_of_threads)
             max_nb_of_threads = max_nb_of_threads*10
@@ -191,6 +201,8 @@ class ViewerBotGUI:
             
             # Append thread to list of threads
             self.threads.append(self.thread)
+            self.nb_requests = 0
+            self.nb_requests_label.config(text=f"Number of requests: {self.nb_requests}")
             
         
     def stop_bot(self):
@@ -205,11 +217,6 @@ class ViewerBotGUI:
             # Update status label and buttons
             status_label = ttk.Label(self.window, text="Status: Stopped")
             status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
-            
-            
-            # Stop all threads
-            for thread in self.threads:
-                thread.stop()
 
             self.bot.stop()
                       
