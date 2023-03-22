@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 4. Click the "Start bot" button to start the script.
 
-![avant](image/6.jpeg)
+![avant](image/6.jpeg)------>
 ![avant](image/142.jpeg)
 
 ## Code Overview
