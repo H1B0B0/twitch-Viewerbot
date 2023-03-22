@@ -15,7 +15,6 @@ processes = []
 
 all_proxies = []
 nb_of_proxies = 0
-MAX_THREADS = 200
 lock = Lock()
 
 
@@ -31,8 +30,6 @@ session.set_option("http-headers", {
     "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93",
     "Referer": "https://www.google.com/"
 })
-
-
 
 class ViewerBot:
     def __init__(self, nb_of_threads, channel_name):
