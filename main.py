@@ -14,7 +14,6 @@ from fake_useragent import UserAgent
 
 
 channel_url = ""
-proxies_file = "good_proxy.txt"
 processes = []
 
 all_proxies = []
