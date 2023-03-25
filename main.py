@@ -91,13 +91,11 @@ class ViewerBot:
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
                         response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
-                    print(f"Sent HEAD request with {current_proxy['http']} | {response.status_code} | {response.request} | {response}")
                     self.nb_requests += 1
                     self.nb_requests_label.config(text=f"Number of requests: {self.nb_requests}")
                     proxy_data['time'] = time.time()
                     all_proxies[current_index] = proxy_data
             except:
-                print("Connection Error!")
                 if proxy_data in all_proxies:
                     all_proxies.remove(proxy_data)
 

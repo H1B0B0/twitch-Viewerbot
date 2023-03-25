@@ -35,6 +35,7 @@ class ViewerBot:
     def __init__(self, nb_of_threads, channel_name):
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
+        self.request_count = 0  # initialize the counter variable
 
 
     def print_exception(self):
@@ -85,12 +86,11 @@ class ViewerBot:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
-                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
-                    print(f"Sent HEAD request with {current_proxy['http']} | {response.status_code} | {response.request} | {response}")
+                        s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
+                        self.request_count += 1  # increment the counter variable
                     proxy_data['time'] = time.time()
                     all_proxies[current_index] = proxy_data
             except:
-                print("Connection Error!")
                 if proxy_data in all_proxies:
                     all_proxies.remove(proxy_data)
 
@@ -106,6 +106,7 @@ class ViewerBot:
 
     def mainmain(self):
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
+        print(f"Number of requests sent: {self.request_count}", end="", flush=True)  # initial print statement
 
         while True:
             proxies = self.get_proxies()
@@ -119,6 +120,9 @@ class ViewerBot:
                 threaded.start()
 
             shuffle(all_proxies)
+
+            # print the request count
+            print(f"\rNumber of requests sent: {self.request_count}", end="", flush=True)
 
 if __name__ == '__main__':
 
