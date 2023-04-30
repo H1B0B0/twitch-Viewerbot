@@ -10,26 +10,39 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 * fake_useragent
 * tkinter
 
-```shell
-pip install -r requirements.txt
-```
 ## Usage
 
 1. Install the requirements:
 
+```shell
+pip install -r requirements.txt
+```
 
 2. Run the script:
 
-
+```shell
+python main.py 
+```
+or 
+```shell
+python main_just_terminal.py
+```
+or
+```shell
+py -3 main.py 
+```
+or 
+```shell
+py -3 main_just_terminal.py
+```
 3. Fill in the following details in the GUI:
 
-* Number of threads: Enter the number of threads you want to use. Each thread represents a single viewer.
+* Number of threads: Enter the number of threads you want to use. Each thread represents 1/10 of a single viewer(So if you want 100 viewers you need to enter 1000 threads).
 * Twitch channel name: Enter the name of the Twitch channel you want to generate views for.
 
 4. Click the "Start bot" button to start the script.
-
-![avant](image/6.jpeg)------>
-![avant](image/142.jpeg)
+* before ![](image/6.jpeg)  
+* after ![](image/142.jpeg)
 
 ## Code Overview
 
