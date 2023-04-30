@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import sv_ttk
 import datetime
 import requests
 import tkinter as tk
@@ -59,9 +60,6 @@ class ViewerBot:
             pass
         return url
     
-    
-
-
 
     def open_url(self, proxy_data):
         try:
@@ -119,9 +117,12 @@ class ViewerBotGUI:
         self.window = tk.Tk()
         self.window.title("ViewerBot")
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        theme_file = os.path.join(current_dir, "azure_theme", "azure.tcl")
-        self.window.tk.call("source", theme_file)
-        self.window.tk.call("set_theme", "dark")
+        now = datetime.datetime.now()
+        hour = now.hour
+        if hour >= 19: 
+            sv_ttk.set_theme("dark")
+        else:
+            sv_ttk.set_theme("light")
         self.window.wm_iconbitmap(f"{current_dir}/R.ico")
         self.nb_requests_label = ttk.Label(self.window, text="Number of requests: 0")
         self.nb_requests_label.grid(column=0, row=5, columnspan=2, padx=10, pady=10)
@@ -145,12 +146,12 @@ class ViewerBotGUI:
         self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
         
         # Button to start the bot
-        start_button = ttk.Button(self.window, style="Accent.TButton",text="Start bot")
+        start_button = ttk.Button(self.window, text="Start bot")
         start_button.grid(column=0, row=3, padx=10, pady=10)
         start_button.config(command=self.start_bot)
         
         # Button to stop the bot
-        stop_button = ttk.Button(self.window, style="Accent.TButton",text="Stop", state="normal")
+        stop_button = ttk.Button(self.window, text="Stop", state="normal")
         stop_button.grid(column=1, row=3, padx=10, pady=10)
         stop_button.config(command=self.stop_bot)
         
