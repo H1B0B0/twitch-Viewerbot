@@ -117,8 +117,8 @@ class ViewerBot:
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
         super().__init__()
-        customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
-        customtkinter.set_default_color_theme("blue")
+        customtkinter.set_appearance_mode("System")
+        customtkinter.set_default_color_theme("green")
         self.title("Viewerbot")
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.wm_iconbitmap(f"{self.current_dir}/R.ico")
