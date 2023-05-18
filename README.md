@@ -10,6 +10,24 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 * fake_useragent
 * tkinter
 
+## Download the folder
+
+> **Warning**
+> If you don't have Git installed, you can download it from [here](https://git-scm.com/download/win).
+
+1. Open a command prompt and navigate to the location where you want to install the folder. Then use the following command:
+   ```shell 
+   git clone https://github.com/H1B0B0/twitch-bot.git
+    ```
+2. Once the folder installation is complete, navigate into the folder.
+
+3. Run the file ``install.bat``to install the required dependencies. 
+
+> **Warning**
+> You need Python installed. If you don't have it, you can download it from [here](https://www.python.org/downloads/)
+
+4. Run ``main.bat`` or ``main_just_terminal.bat`` if you prefer a command-line interface and better performance (the terminal version currently uses HTTP scraped proxies).
+
 ## Usage
 
 1. Install the requirements:
