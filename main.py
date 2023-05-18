@@ -13,7 +13,7 @@ from fake_useragent import UserAgent
 
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, channel_name, label,proxylist, stop=False):
+    def __init__(self, nb_of_threads, channel_name, label,proxylist, type_of_proxy , proxy_imported, stop=False):
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
         self.nb_requests = 0
@@ -22,6 +22,9 @@ class ViewerBot:
         self.proxylist = proxylist
         self.all_proxies = []
         self.proxyrefreshed = True
+        self.type_of_proxy = type_of_proxy.get()
+        self.proxy_imported = proxy_imported
+
 
     def create_session(self):
         # Session creating for request
@@ -39,9 +42,29 @@ class ViewerBot:
         return self.session
 
     def get_proxies(self):
-        if self.proxylist == None or self.proxyrefreshed == False: 
+        if self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "http": 
             try:
                 response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
+                if response.status_code == 200:
+                    lines = response.text.split("\n")
+                    lines = [line.strip() for line in lines if line.strip()]
+                    return lines
+                self.proxyrefreshed = True
+            except:
+                pass
+        elif self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "socks4":
+            try:
+                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&timeout=10000&country=all&ssl=all&anonymity=all")
+                if response.status_code == 200:
+                    lines = response.text.split("\n")
+                    lines = [line.strip() for line in lines if line.strip()]
+                    return lines
+                self.proxyrefreshed = True
+            except:
+                pass
+        elif self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "socks5":
+            try:
+                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=10000&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
                     lines = response.text.split("\n")
                     lines = [line.strip() for line in lines if line.strip()]
@@ -61,7 +84,10 @@ class ViewerBot:
                 url = streams['worst'].url
         except:
             pass
-        return url
+        try: 
+            return url
+        except:
+            exit()
     
 
     def open_url(self, proxy_data):
@@ -71,6 +97,13 @@ class ViewerBot:
             if proxy_data['url'] == "":
                 proxy_data['url'] = self.get_url()
             current_url = proxy_data['url']
+            username = proxy_data.get('username')
+            password = proxy_data.get('password')
+            if username and password:
+                current_proxy = {"http": f"{username}:{password}@{proxy_data['proxy']}", "https": f"{username}:{password}@{proxy_data['proxy']}"}
+            else:
+                current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
+
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
@@ -105,7 +138,7 @@ class ViewerBot:
                 self.threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                 self.threaded.start()
 
-            if elapsed_seconds >= 300:
+            if elapsed_seconds >= 300 and self.proxy_imported == False:
                 start = datetime.datetime.now()
                 proxies = self.get_proxies()
                 elapsed_seconds = 0  # reset elapsed time
@@ -123,7 +156,7 @@ class ViewerBotGUI(customtkinter.CTk):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.wm_iconbitmap(f"{self.current_dir}/R.ico")
         self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0")
-        self.nb_requests_label.grid(column=0, row=5, columnspan=2, padx=10, pady=2)
+        self.nb_requests_label.grid(column=0, row=7, columnspan=2, padx=10, pady=2)
         self.nb_requests = 0
         
         # Label for number of threads
@@ -142,20 +175,29 @@ class ViewerBotGUI(customtkinter.CTk):
         # Entry for Twitch channel name
         self.channel_name_entry = customtkinter.CTkEntry(self)
         self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
+
+        # Label for number of threads
+        proxy_type = customtkinter.CTkLabel(self, text="Proxy type")
+        proxy_type.grid(column=0, row=3, columnspan=2, padx=10, pady=0)
+
+        # select proxy type
+        self.segemented_button_var = customtkinter.StringVar(value="http")
+        segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5"], variable=self.segemented_button_var)
+        segemented_button.grid(column=0, row=4, columnspan=2, padx=10, pady=5)
         
         # Button to start the bot
         start_button = customtkinter.CTkButton(self, text="Start bot")
-        start_button.grid(column=0, row=3, padx=10, pady=10)
+        start_button.grid(column=0, row=5, padx=10, pady=10)
         start_button.configure(command=self.start_bot)
         
         # Button to stop the bot
         stop_button = customtkinter.CTkButton(self, text="Stop", state="normal")
-        stop_button.grid(column=1, row=3, padx=10, pady=10)
+        stop_button.grid(column=1, row=5, padx=10, pady=10)
         stop_button.configure(command=self.stop_bot)
         
         # Label for status
         status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-        status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=2)
+        status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=2)
         
         # Variables for status and threads
         self.status = "Stopped"
@@ -168,7 +210,7 @@ class ViewerBotGUI(customtkinter.CTk):
         if self.status == "Stopped":
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
-            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , self.proxylist)
+            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , self.proxylist, self.segemented_button_var, self.proxy_imported)
             self.thread = Thread(target=self.bot.main)
             self.thread.daemon = True
             self.thread.start()
@@ -179,7 +221,7 @@ class ViewerBotGUI(customtkinter.CTk):
             
             # Update status label and buttons
             status_label = customtkinter.CTkLabel(self, text="Status: Running")
-            status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
+            status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=10)
             
             # Append thread to list of threads
             self.threads.append(self.thread)
@@ -197,7 +239,7 @@ class ViewerBotGUI(customtkinter.CTk):
             
             # Update status label and buttons
             status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-            status_label.grid(column=0, row=4, columnspan=2, padx=10, pady=10)
+            status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=10)
 
             self.bot.stop()
 
@@ -212,7 +254,7 @@ class ViewerBotGUI(customtkinter.CTk):
         self.dialog.iconbitmap(f"{self.current_dir}/R.ico")
 
         # Button for import proxy list
-        open_file_button = customtkinter.CTkButton(self.dialog, text="import your proxy list (only http)")
+        open_file_button = customtkinter.CTkButton(self.dialog, text="import your proxy list")
         open_file_button.grid(column=1, row=1, padx=10, pady=10)
         open_file_button.configure(command=self.on_open_file) 
 
@@ -233,6 +275,7 @@ class ViewerBotGUI(customtkinter.CTk):
         
     def scraped_proxy(self):
         self.proxylist = None
+        self.proxy_imported = False
 
         self.dialog.destroy()
         
@@ -248,6 +291,8 @@ class ViewerBotGUI(customtkinter.CTk):
             with open(path, 'r') as f:
                 for line in f:
                     self.proxylist.append(line.strip())
+
+        self.proxy_imported = True
         
         # close the parameters window
         self.dialog.destroy()
