@@ -13,7 +13,7 @@ from fake_useragent import UserAgent
 
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, channel_name, label,proxylist, type_of_proxy , proxy_imported, stop=False):
+    def __init__(self, nb_of_threads, channel_name, label,proxylist, type_of_proxy , proxy_imported, timeout, stop=False):
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
         self.nb_requests = 0
@@ -24,7 +24,7 @@ class ViewerBot:
         self.proxyrefreshed = True
         self.type_of_proxy = type_of_proxy.get()
         self.proxy_imported = proxy_imported
-
+        self.timeout = timeout
 
     def create_session(self):
         # Session creating for request
@@ -42,29 +42,9 @@ class ViewerBot:
         return self.session
 
     def get_proxies(self):
-        if self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "http": 
+        if self.proxylist == None or self.proxyrefreshed == False: 
             try:
-                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
-                if response.status_code == 200:
-                    lines = response.text.split("\n")
-                    lines = [line.strip() for line in lines if line.strip()]
-                    return lines
-                self.proxyrefreshed = True
-            except:
-                pass
-        elif self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "socks4":
-            try:
-                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&timeout=10000&country=all&ssl=all&anonymity=all")
-                if response.status_code == 200:
-                    lines = response.text.split("\n")
-                    lines = [line.strip() for line in lines if line.strip()]
-                    return lines
-                self.proxyrefreshed = True
-            except:
-                pass
-        elif self.proxylist == None or self.proxyrefreshed == False and self.type_of_proxy == "socks5":
-            try:
-                response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=10000&country=all&ssl=all&anonymity=all")
+                response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
                     lines = response.text.split("\n")
                     lines = [line.strip() for line in lines if line.strip()]
@@ -155,9 +135,8 @@ class ViewerBotGUI(customtkinter.CTk):
         self.title("Viewerbot")
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.wm_iconbitmap(f"{self.current_dir}/R.ico")
-        self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0")
-        self.nb_requests_label.grid(column=0, row=7, columnspan=2, padx=10, pady=2)
         self.nb_requests = 0
+        self.slider = 0
         
         # Label for number of threads
         nb_threads_label = customtkinter.CTkLabel(self, text="Number of threads:")
@@ -176,41 +155,52 @@ class ViewerBotGUI(customtkinter.CTk):
         self.channel_name_entry = customtkinter.CTkEntry(self)
         self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
 
-        # Label for number of threads
+        # Label for proxy type
         proxy_type = customtkinter.CTkLabel(self, text="Proxy type")
         proxy_type.grid(column=0, row=3, columnspan=2, padx=10, pady=0)
 
         # select proxy type
         self.segemented_button_var = customtkinter.StringVar(value="http")
-        segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5"], variable=self.segemented_button_var)
-        segemented_button.grid(column=0, row=4, columnspan=2, padx=10, pady=5)
+        self.segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5", "all"], variable=self.segemented_button_var)
+        self.segemented_button.grid(column=0, row=4, columnspan=2, padx=10, pady=5)
+
+        self.slider = customtkinter.CTkSlider(self, from_=1000, to=10000, command=self.slider_event)
+        self.slider.grid(column=0, row=6, columnspan=2, padx=10, pady=0)
+
+        # Label for timeout
+        self.timeout = customtkinter.CTkLabel(self, text=f"timeout: {int(self.slider.get())}")
+        self.timeout.grid(column=0, row=5, columnspan=2, padx=10, pady=0)
         
         # Button to start the bot
         start_button = customtkinter.CTkButton(self, text="Start bot")
-        start_button.grid(column=0, row=5, padx=10, pady=10)
+        start_button.grid(column=0, row=7, padx=10, pady=10)
         start_button.configure(command=self.start_bot)
         
         # Button to stop the bot
         stop_button = customtkinter.CTkButton(self, text="Stop", state="normal")
-        stop_button.grid(column=1, row=5, padx=10, pady=10)
+        stop_button.grid(column=1, row=7, padx=10, pady=10)
         stop_button.configure(command=self.stop_bot)
         
+        self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0")
+        self.nb_requests_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
         # Label for status
         status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-        status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=2)
+        status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=2)
         
         # Variables for status and threads
         self.status = "Stopped"
         self.threads = []
 
         self.show_dialog()
-        
+
+    def slider_event(self, value):
+        self.timeout.configure(text=f"timeout: {int(self.slider.get())}")
         
     def start_bot(self):
         if self.status == "Stopped":
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
-            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , self.proxylist, self.segemented_button_var, self.proxy_imported)
+            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , self.proxylist, self.segemented_button_var, self.proxy_imported, self.slider.get())
             self.thread = Thread(target=self.bot.main)
             self.thread.daemon = True
             self.thread.start()
@@ -218,10 +208,12 @@ class ViewerBotGUI(customtkinter.CTk):
             self.status = "Running"
             self.nb_threads_entry.configure(state="disabled")
             self.channel_name_entry.configure(state="disabled")
+            self.segemented_button.configure(state="disabled")
+            self.slider.configure(state="disabled")
             
             # Update status label and buttons
             status_label = customtkinter.CTkLabel(self, text="Status: Running")
-            status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=10)
+            status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=10)
             
             # Append thread to list of threads
             self.threads.append(self.thread)
@@ -235,11 +227,13 @@ class ViewerBotGUI(customtkinter.CTk):
             self.status = "Stopped"
             self.nb_threads_entry.configure(state="normal")
             self.channel_name_entry.configure(state="normal")
+            self.segemented_button.configure(state="normal")
+            self.slider.configure(state="normal")
 
             
             # Update status label and buttons
             status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-            status_label.grid(column=0, row=6, columnspan=2, padx=10, pady=10)
+            status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=10)
 
             self.bot.stop()
 
@@ -278,7 +272,8 @@ class ViewerBotGUI(customtkinter.CTk):
         self.proxy_imported = False
 
         self.dialog.destroy()
-        
+
+    
         
     # validation button
     def on_open_file(self):
