@@ -88,9 +88,8 @@ class ViewerBot:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
-                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
+                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=self.timeout)
                     self.nb_requests += 1
-                    self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
             except:
@@ -108,6 +107,7 @@ class ViewerBot:
         while not self.stop_event:
             proxies = self.get_proxies()
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+            elapsed_seconds_request = (datetime.datetime.now() - start).total_seconds()
             
 
             for p in proxies:
@@ -123,6 +123,10 @@ class ViewerBot:
                 proxies = self.get_proxies()
                 elapsed_seconds = 0  # reset elapsed time
                 self.proxyrefreshed = False
+
+            if elapsed_seconds_request >= 2 :
+                self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
+                elapsed_seconds_request = (datetime.datetime.now() - start).total_seconds()
 
             shuffle(self.all_proxies)
 
@@ -260,11 +264,6 @@ class ViewerBotGUI(customtkinter.CTk):
         self.dialog.protocol("WM_DELETE_WINDOW", self.scraped_proxy)
         # center the parameters window about the object
         self.dialog.update_idletasks()
-        # width = self.dialog.winfo_width()
-        # height = self.dialog.winfo_height()
-        # x = self.winfo_x() + (self.winfo_width() - width) // 2
-        # y = self.winfo_y() + (self.winfo_height() - height) // 2
-        # self.dialog.geometry(f"{width}x{height}+{x}+{y}")
         self.wait_window(self.dialog)
         
     def scraped_proxy(self):
