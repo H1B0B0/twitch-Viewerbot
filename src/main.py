@@ -88,7 +88,7 @@ class ViewerBot:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
-                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=self.timeout)
+                        response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=(self.timeout/1000))
                     self.nb_requests += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
@@ -107,9 +107,7 @@ class ViewerBot:
         while not self.stop_event:
             proxies = self.get_proxies()
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-            elapsed_seconds_request = (datetime.datetime.now() - start).total_seconds()
             
-
             for p in proxies:
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
@@ -124,11 +122,8 @@ class ViewerBot:
                 elapsed_seconds = 0  # reset elapsed time
                 self.proxyrefreshed = False
 
-            if elapsed_seconds_request >= 2 :
-                self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
-                elapsed_seconds_request = (datetime.datetime.now() - start).total_seconds()
+            self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
 
-            shuffle(self.all_proxies)
 
         
 class ViewerBotGUI(customtkinter.CTk):
@@ -149,7 +144,6 @@ class ViewerBotGUI(customtkinter.CTk):
         # Entry for number of threads
         self.nb_threads_entry = customtkinter.CTkEntry(self)
         self.nb_threads_entry.grid(column=1, row=0, padx=10, pady=10)
-        
         
         # Label for Twitch channel name
         channel_name_label = customtkinter.CTkLabel(self, text="Twitch channel name:")
@@ -246,8 +240,7 @@ class ViewerBotGUI(customtkinter.CTk):
         self.proxylist = []
 
         # create new window for the parameters
-        self.dialog = tk.Toplevel(self)
-        self.dialog.configure(background="#242424")
+        self.dialog = customtkinter.CTkToplevel(self)
         self.dialog.title("Parameters")
         self.dialog.iconbitmap(f"{self.current_dir}/R.ico")
 
