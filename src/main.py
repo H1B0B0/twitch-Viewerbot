@@ -155,43 +155,43 @@ class ViewerBotGUI(customtkinter.CTk):
         
         # Label for Twitch channel name
         channel_name_label = customtkinter.CTkLabel(self, text="Twitch channel name:")
-        channel_name_label.grid(column=0, row=2, padx=10, pady=10)
+        channel_name_label.grid(column=0, row=1, padx=10, pady=10)
         
         # Entry for Twitch channel name
         self.channel_name_entry = customtkinter.CTkEntry(self)
-        self.channel_name_entry.grid(column=1, row=2, padx=10, pady=10)
+        self.channel_name_entry.grid(column=1, row=1, padx=10, pady=10)
 
         # Label for proxy type
         proxy_type = customtkinter.CTkLabel(self, text="Proxy type")
-        proxy_type.grid(column=0, row=3, columnspan=2, padx=10, pady=0)
+        proxy_type.grid(column=0, row=2, columnspan=2, padx=10, pady=0)
 
         # select proxy type
         self.segemented_button_var = customtkinter.StringVar(value="http")
         self.segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5", "all"], variable=self.segemented_button_var)
-        self.segemented_button.grid(column=0, row=4, columnspan=2, padx=10, pady=5)
+        self.segemented_button.grid(column=0, row=3, columnspan=2, padx=10, pady=5)
 
         self.slider = customtkinter.CTkSlider(self, from_=1000, to=10000, command=self.slider_event)
-        self.slider.grid(column=0, row=6, columnspan=2, padx=10, pady=0)
+        self.slider.grid(column=0, row=5, columnspan=2, padx=10, pady=0)
 
         # Label for timeout
         self.timeout = customtkinter.CTkLabel(self, text=f"timeout: {int(self.slider.get())}")
-        self.timeout.grid(column=0, row=5, columnspan=2, padx=10, pady=0)
+        self.timeout.grid(column=0, row=4, columnspan=2, padx=10, pady=0)
         
         # Button to start the bot
         start_button = customtkinter.CTkButton(self, text="Start bot")
-        start_button.grid(column=0, row=7, padx=10, pady=10)
+        start_button.grid(column=0, row=6, padx=10, pady=10)
         start_button.configure(command=self.start_bot)
         
         # Button to stop the bot
         stop_button = customtkinter.CTkButton(self, text="Stop", state="normal")
-        stop_button.grid(column=1, row=7, padx=10, pady=10)
+        stop_button.grid(column=1, row=6, padx=10, pady=10)
         stop_button.configure(command=self.stop_bot)
         
         self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0")
-        self.nb_requests_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
+        self.nb_requests_label.grid(column=0, row=7, columnspan=2, padx=10, pady=2)
         # Label for status
-        status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-        status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=2)
+        self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
+        self.status_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
         
         # Variables for status and threads
         self.status = "Stopped"
@@ -215,15 +215,10 @@ class ViewerBotGUI(customtkinter.CTk):
             self.channel_name_entry.configure(state="disabled")
             self.segemented_button.configure(state="disabled")
             self.slider.configure(state="disabled")
-            
             # Update status label and buttons
-            status_label = customtkinter.CTkLabel(self, text="Status: Running")
-            status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=10)
-            
+            self.status_label.configure(text="Status: Running")
             # Append thread to list of threads
             self.threads.append(self.thread)
-            self.nb_requests = 0
-            self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
             
         
     def stop_bot(self):
@@ -236,8 +231,7 @@ class ViewerBotGUI(customtkinter.CTk):
             self.slider.configure(state="normal")
 
             # Update status label and buttons
-            status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-            status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=10)
+            self.status_label.configure(text="Status: Stopped")
 
             self.bot.stop()
 
