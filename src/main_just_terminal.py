@@ -37,6 +37,7 @@ class ViewerBot:
             try:
                 response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
+                    lines = []
                     lines = response.text.split("\n")
                     lines = [line.strip() for line in lines if line.strip()]
                     self.proxyrefreshed = True

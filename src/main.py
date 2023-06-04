@@ -46,6 +46,7 @@ class ViewerBot:
             try:
                 response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
+                    lines = []
                     lines = response.text.split("\n")
                     lines = [line.strip() for line in lines if line.strip()]
                     self.proxyrefreshed = True
@@ -97,6 +98,7 @@ class ViewerBot:
                 self.nb_requests += 1
                 proxy_data['time'] = time.time()
                 self.all_proxies[current_index] = proxy_data
+                self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
         except:
             pass
 
@@ -131,7 +133,6 @@ class ViewerBot:
                 elapsed_seconds = 0  # Reset elapsed time
                 self.proxyrefreshed = False
 
-            self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
 
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
