@@ -2,6 +2,10 @@
 
 This is a Python script for generating Twitch views using proxies. It is implemented as a GUI application with the help of the tkinter module.
 
+## My patreon to support me
+
+[My Patreon](https://www.patreon.com/HIBO)
+
 ## Requirements
 
 * Python 3.x
@@ -39,11 +43,15 @@ pip install -r requirements.txt
 2. Run the script:
 
 ```shell
-python main.py 
+python3 main.py 
 ```
 or 
 ```shell
-python main_just_terminal.py
+python3 main_just_terminal.py
+```
+or 
+```shell
+python3 script.py -threads nb_threads -twitchname example_channel
 ```
 or
 ```shell
@@ -52,6 +60,10 @@ py -3 main.py
 or 
 ```shell
 py -3 main_just_terminal.py
+```
+or 
+```shell
+py -3 script.py -threads nb_threads -twitchname example_channel
 ```
 3. Fill in the following details in the GUI:
 

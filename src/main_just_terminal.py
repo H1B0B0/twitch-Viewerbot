@@ -1,21 +1,13 @@
 import sys
+import argparse
 import time
 import random
 import requests
 import datetime
 from random import shuffle
-from threading import Thread, Lock
+from threading import Thread
 from streamlink import Streamlink
 from fake_useragent import UserAgent
-
-
-channel_url = ""
-processes = []
-
-all_proxies = []
-nb_of_proxies = 0
-lock = Lock()
-
 
 # Session creating for request
 ua = UserAgent()
@@ -35,17 +27,22 @@ class ViewerBot:
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
         self.request_count = 0  # initialize the counter variable
+        self.all_proxies = []
+        self.processes = []
+        self.proxyrefreshed = False
 
     def get_proxies(self):
-        try:
-            response = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
-            if response.status_code == 200:
-                lines = response.text.split("\n")
-                lines = [line.strip() for line in lines if line.strip()]
-                return lines
-        except:
-            pass
-            
+        # Fetch proxies from an API or use the provided proxy list
+        if self.proxyrefreshed == False: 
+            try:
+                response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
+                if response.status_code == 200:
+                    lines = response.text.split("\n")
+                    lines = [line.strip() for line in lines if line.strip()]
+                    self.proxyrefreshed = True
+                    return lines
+            except:
+                pass
 
     def get_url(self):
         url = ""
@@ -58,13 +55,11 @@ class ViewerBot:
         except:
             pass
         return url
-    
 
     def open_url(self, proxy_data):
         try:
-            global all_proxies
             headers = {'User-Agent': ua.random}
-            current_index = all_proxies.index(proxy_data)
+            current_index = self.all_proxies.index(proxy_data)
 
             if proxy_data['url'] == "":
                 proxy_data['url'] = self.get_url()
@@ -76,19 +71,17 @@ class ViewerBot:
                         s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
                         self.request_count += 1  # increment the counter variable
                     proxy_data['time'] = time.time()
-                    all_proxies[current_index] = proxy_data
+                    self.all_proxies[current_index] = proxy_data
             except:
                 pass
 
         except (KeyboardInterrupt):
             sys.exit()
 
-
     def stop(self):
-        for thread in processes:
+        for thread in self.processes:
             thread.join()
         sys.exit()
-
 
     def main(self):
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
@@ -99,26 +92,31 @@ class ViewerBot:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
             for p in proxies:
-                all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+                self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
             for i in range(0, int(self.nb_of_threads)):
-                threaded = Thread(target=self.open_url, args=(all_proxies[random.randrange(len(all_proxies))],))
+                threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
                 threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                 # print the request count
                 print(f"\rNumber of requests sent: {self.request_count}", end="", flush=True)
                 threaded.start()
 
             if elapsed_seconds >= 300:
+                # Refresh the proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
+                self.proxyrefreshed = False
                 proxies = self.get_proxies()
-                elapsed_seconds = 0  # reset elapsed time
+                elapsed_seconds = 0  # Reset elapsed time
 
-            shuffle(all_proxies)
-
+            shuffle(self.all_proxies)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-threads', type=int, help='Number of threads')
+    parser.add_argument('-twitchname', type=str, help='Twitch channel name')
+    args = parser.parse_args()
 
-    nb_of_threads = int(input("Enter the number of threads: "))
-    channel_name = input("Enter the name of the Twitch channel: ")
+    nb_of_threads = args.threads if args.threads else int(input("Enter the number of threads: "))
+    channel_name = args.twitchname if args.twitchname else input("Enter the name of the Twitch channel: ")
     bot = ViewerBot(nb_of_threads=nb_of_threads, channel_name=channel_name)
     bot.main()
