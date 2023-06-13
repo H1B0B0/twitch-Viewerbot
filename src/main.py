@@ -4,6 +4,7 @@ import random
 import customtkinter
 import datetime
 import requests
+import concurrent.futures
 from sys import exit
 from random import shuffle
 from threading import Thread
@@ -12,11 +13,10 @@ from streamlink import Streamlink
 from fake_useragent import UserAgent
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, channel_name, label, proxylist, type_of_proxy, proxy_imported, timeout, stop=False):
+    def __init__(self, nb_of_threads, channel_name, proxylist, type_of_proxy, proxy_imported, timeout, stop=False):
         self.nb_of_threads = nb_of_threads
         self.channel_name = channel_name
         self.nb_requests = 0
-        self.nb_requests_label = label
         self.stop_event = stop
         self.proxylist = proxylist
         self.all_proxies = []
@@ -24,6 +24,7 @@ class ViewerBot:
         self.type_of_proxy = type_of_proxy.get()
         self.proxy_imported = proxy_imported
         self.timeout = timeout
+        self.channel_url = "https://www.twitch.tv/" + self.channel_name
 
     def create_session(self):
         # Create a session for making requests
@@ -98,7 +99,6 @@ class ViewerBot:
                 self.nb_requests += 1
                 proxy_data['time'] = time.time()
                 self.all_proxies[current_index] = proxy_data
-                self.nb_requests_label.configure(text=f"Number of requests: {self.nb_requests}")
         except:
             pass
 
@@ -112,27 +112,25 @@ class ViewerBot:
         proxies = self.get_proxies()
         start = datetime.datetime.now()
         self.create_session()
-        while not self.stop_event:
-            proxies = self.get_proxies()
-            elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-
-            for p in proxies:
-                # Add each proxy to the all_proxies list
-                self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
-
-            for i in range(0, int(self.nb_of_threads)):
-                # Open the URL using a random proxy from the all_proxies list
-                self.threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
-                self.threaded.daemon = True  # This thread dies when the main thread (only non-daemon thread) exits.
-                self.threaded.start()
-
-            if elapsed_seconds >= 300 and self.proxy_imported == False:
-                # Refresh the proxies after 300 seconds (5 minutes)
-                start = datetime.datetime.now()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=int(self.nb_of_threads)) as executor:
+            while not self.stop_event:
                 proxies = self.get_proxies()
-                elapsed_seconds = 0  # Reset elapsed time
-                self.proxyrefreshed = False
+                elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
+                for p in proxies:
+                    # Add each proxy to the all_proxies list
+                    self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+
+                for _ in range(int(self.nb_of_threads)):
+                    # Open the URL using a random proxy from the all_proxies list
+                    executor.submit(self.open_url, self.all_proxies[random.randrange(len(self.all_proxies))])
+
+                if elapsed_seconds >= 300 and not self.proxy_imported:
+                    # Refresh the proxies after 300 seconds (5 minutes)
+                    start = datetime.datetime.now()
+                    proxies = self.get_proxies()
+                    elapsed_seconds = 0  # Reset elapsed time
+                    self.proxyrefreshed = False
 
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
@@ -205,8 +203,9 @@ class ViewerBotGUI(customtkinter.CTk):
         if self.status == "Stopped":
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
-            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.nb_requests_label , self.proxylist, self.segemented_button_var, self.proxy_imported, self.slider.get())
+            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.segemented_button_var, self.proxy_imported, self.slider.get())
             self.thread = Thread(target=self.bot.main)
+            app.after(500, app.configure_label)
             self.thread.daemon = True
             self.thread.start()
             # Change status and disable/enable buttons
@@ -218,8 +217,7 @@ class ViewerBotGUI(customtkinter.CTk):
             # Update status label and buttons
             self.status_label.configure(text="Status: Running")
             # Append thread to list of threads
-            self.threads.append(self.thread)
-            
+            self.threads.append(self.thread)         
         
     def stop_bot(self):
         if self.status == "Running":
@@ -229,11 +227,13 @@ class ViewerBotGUI(customtkinter.CTk):
             self.channel_name_entry.configure(state="normal")
             self.segemented_button.configure(state="normal")
             self.slider.configure(state="normal")
-
             # Update status label and buttons
             self.status_label.configure(text="Status: Stopped")
-
             self.bot.stop()
+
+    def configure_label(self):
+        self.nb_requests_label.configure(text=f"Number of requests: {self.bot.nb_requests}")
+        app.after(500, app.configure_label)
 
     def show_dialog(self):
         self.proxylist = []
