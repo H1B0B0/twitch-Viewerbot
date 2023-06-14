@@ -15,7 +15,6 @@ from fake_useragent import UserAgent
 class ViewerBot:
     def __init__(self, nb_of_threads, channel_name, proxylist, type_of_proxy, proxy_imported, timeout, stop=False):
         self.nb_of_threads = nb_of_threads
-        self.channel_name = channel_name
         self.nb_requests = 0
         self.stop_event = stop
         self.proxylist = proxylist
@@ -24,7 +23,8 @@ class ViewerBot:
         self.type_of_proxy = type_of_proxy.get()
         self.proxy_imported = proxy_imported
         self.timeout = timeout
-        self.channel_url = "https://www.twitch.tv/" + self.channel_name
+        self.channel_url = "https://twitch.com/" + channel_name
+        self.proxyreturned1time = False 
 
     def create_session(self):
         # Create a session for making requests
@@ -54,7 +54,8 @@ class ViewerBot:
                     return lines
             except:
                 pass
-        else:
+        elif self.proxyreturned1time == False:
+            self.proxyreturned1time = True
             return self.proxylist
 
     def get_url(self):
@@ -107,14 +108,12 @@ class ViewerBot:
         self.stop_event = True
 
     def main(self):
-        self.channel_url = "https://www.twitch.tv/" + self.channel_name
 
         proxies = self.get_proxies()
         start = datetime.datetime.now()
         self.create_session()
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(self.nb_of_threads)) as executor:
             while not self.stop_event:
-                proxies = self.get_proxies()
                 elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
                 for p in proxies:
