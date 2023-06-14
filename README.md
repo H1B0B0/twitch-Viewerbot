@@ -21,7 +21,7 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 
 1. Open a command prompt and navigate to the location where you want to install the folder. Then use the following command:
    ```shell 
-   git clone https://github.com/H1B0B0/twitch-bot.git
+   git clone https://github.com/H1B0B0/twitch-Viewerbot.git
     ```
 2. Once the folder installation is complete, navigate into the folder.
 
