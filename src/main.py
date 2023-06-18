@@ -4,7 +4,6 @@ import random
 import customtkinter
 import datetime
 import requests
-import concurrent.futures
 from sys import exit
 from random import shuffle
 from threading import Thread
@@ -136,10 +135,10 @@ class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         customtkinter.set_appearance_mode("System")
-        customtkinter.set_default_color_theme("green")
         self.title("Viewerbot")
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.wm_iconbitmap(f"{self.current_dir}/R.ico")
+        customtkinter.set_default_color_theme(os.path.join(self.current_dir, "..", "interface_theme", "purple.json"))
         self.nb_requests = 0
         self.slider = 0
         
@@ -205,7 +204,7 @@ class ViewerBotGUI(customtkinter.CTk):
             self.channel_name = self.channel_name_entry.get()
             self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.segemented_button_var, self.proxy_imported, self.slider.get())
             self.thread = Thread(target=self.bot.main)
-            app.after(500, app.configure_label)
+            app.after(50, app.configure_label)
             self.thread.daemon = True
             self.thread.start()
             # Change status and disable/enable buttons
@@ -215,7 +214,7 @@ class ViewerBotGUI(customtkinter.CTk):
             self.segemented_button.configure(state="disabled")
             self.slider.configure(state="disabled")
             # Update status label and buttons
-            self.status_label.configure(text="Status: Running")
+            self.status_label.configure(text=f"Status: {self.status}")
             # Append thread to list of threads
             self.threads.append(self.thread)         
         
@@ -228,12 +227,13 @@ class ViewerBotGUI(customtkinter.CTk):
             self.segemented_button.configure(state="normal")
             self.slider.configure(state="normal")
             # Update status label and buttons
-            self.status_label.configure(text="Status: Stopped")
+            self.status_label.configure(text=f"Status: {self.status}")
             self.bot.stop()
 
     def configure_label(self):
         self.nb_requests_label.configure(text=f"Number of requests: {self.bot.nb_requests}")
-        app.after(500, app.configure_label)
+        self.update_idletasks()
+        app.after(50, app.configure_label)
 
     def show_dialog(self):
         self.proxylist = []
