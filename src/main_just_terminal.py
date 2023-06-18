@@ -30,6 +30,7 @@ class ViewerBot:
         self.all_proxies = []
         self.processes = []
         self.proxyrefreshed = False
+        self.channel_url = "https://www.twitch.tv/" + self.channel_name
 
     def get_proxies(self):
         # Fetch proxies from an API or use the provided proxy list
@@ -85,7 +86,6 @@ class ViewerBot:
         sys.exit()
 
     def main(self):
-        self.channel_url = "https://www.twitch.tv/" + self.channel_name
         print(f"Number of requests sent: {self.request_count}", end="", flush=True)  # initial print statement
         proxies = self.get_proxies()
         start = datetime.datetime.now()
