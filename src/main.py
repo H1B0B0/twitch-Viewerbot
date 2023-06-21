@@ -137,7 +137,11 @@ class ViewerBotGUI(customtkinter.CTk):
         customtkinter.set_appearance_mode("System")
         self.title("Viewerbot")
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.wm_iconbitmap(f"{self.current_dir}/R.ico")
+        # try catch if we are on linux distribution
+        try:
+            self.wm_iconbitmap(f"{self.current_dir}/R.ico")
+        except:
+            pass
         customtkinter.set_default_color_theme(os.path.join(self.current_dir, "..", "interface_theme", "purple.json"))
         self.nb_requests = 0
         self.slider = 0
@@ -240,8 +244,11 @@ class ViewerBotGUI(customtkinter.CTk):
         # create new window for the parameters
         self.dialog = customtkinter.CTkToplevel(self)
         self.dialog.title("Parameters")
-        self.dialog.iconbitmap(f"{self.current_dir}/R.ico")
-
+        # try catch if we are on linux distribution
+        try:
+            self.wm_iconbitmap(f"{self.current_dir}/R.ico")
+        except:
+            pass
         # Button for import proxy list
         open_file_button = customtkinter.CTkButton(self.dialog, text="import your proxy list")
         open_file_button.grid(column=1, row=1, padx=10, pady=10)
