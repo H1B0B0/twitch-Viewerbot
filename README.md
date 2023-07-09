@@ -37,7 +37,7 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 1. Install the requirements:
 
 ```shell
-pip install -r requirements.txt
+pip install .
 ```
 
 2. Run the script:

@@ -71,7 +71,6 @@ class ViewerBot:
             return url
         except:
             exit()
-    
 
     def open_url(self, proxy_data):
         # Open the stream URL using the given proxy
