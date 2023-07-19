@@ -71,7 +71,7 @@ py -3 script.py -threads nb_threads -twitchname example_channel
 * Twitch channel name: Enter the name of the Twitch channel you want to generate views for.
 
 4. Click the "Start bot" button to start the script.
-![](image/6.jpeg) --> ![](image/142.jpeg)
+![](images/6.jpeg) --> ![](images/142.jpeg)
 
 ## Code Overview
 
@@ -84,7 +84,7 @@ The `ViewerBotGUI` class sets up the GUI and handles button clicks.
 The `main()` function creates an instance of the `ViewerBotGUI` class and starts the GUI main loop.
 
 ## Interface
-![](image/selectproxy.PNG) ![](image/interface.PNG)
+![](images/selectproxy.PNG) ![](images/interface.PNG)
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
