@@ -2,9 +2,8 @@ name: Python package
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -18,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -29,7 +28,16 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-    - name: build with build
+    - name: Build with PyInstaller
+      if: startsWith(github.ref, 'refs/tags/')
       run: |
-        python -m build -w
+        pip install pyinstaller
+        pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean --add-data "/home/menet/.local/lib/python3.11/site-packages/customtkinter:customtkinter/" --add-data "/home/menet/.local/lib/python3.11/site-packages/streamlink:streamlink/" --add-data "/home/menet/.local/lib/python3.11/site-packages/fake_useragent:fake_useragent/" --add-data "/home/menet/Desktop/autre/twitch_bot/src/twitchbot/interface_assets:interface_assets/" --add-data "/home/menet/Desktop/autre/twitch_bot/src/twitchbot:twitchbot/" --add-data "/home/menet/.local/lib/python3.11/site-packages/Crypto:Crypto/" "/home/menet/Desktop/autre/twitch_bot/src/twitchbot/main.py"
+        - name: Upload release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Content-Type: $(file -b --mime-type /home/menet/Desktop/autre/twitch_bot/src/twitchbot/dist/Twitch\ ViewerBOT)" \
+          --data-binary "@/home/menet/Desktop/autre/twitch_bot/src/twitchbot/dist/Twitch\ ViewerBOT" \
+          "${{ github.event.release.upload_url }}?name=Twitch-ViewerBOT"
 

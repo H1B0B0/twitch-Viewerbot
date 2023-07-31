@@ -1,8 +1,13 @@
-import os
 import customtkinter
+from pathlib import Path
 from threading import Thread
+from tkinter import messagebox
 from tkinter import filedialog
 from viewer_bot import ViewerBot
+
+current_path = Path(__file__).resolve().parent
+ICON = current_path/"interface_assets"/"R.ico"
+THEME = current_path/"interface_assets"/"purple.json"
 
 SLIDER_MIN = 1000
 SLIDER_MAX = 10000
@@ -10,16 +15,14 @@ SLIDER_MAX = 10000
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        self.title("Viewerbot")
         customtkinter.set_appearance_mode("System")
         self.title("Viewerbot")
-        from pathlib import Path
-        self.current_dir = Path(__file__).resolve().parent.parent
-        # try catch if we are on linux distribution
         try:
-            self.wm_iconbitmap(os.path.join(self.current_dir, "..", "images", "R.ico"))
+            self.wm_iconbitmap(ICON)
         except:
             pass
-        customtkinter.set_default_color_theme(os.path.join(self.current_dir, "..", "interface_theme", "purple.json"))
+        customtkinter.set_default_color_theme(THEME)
         self.nb_requests = 0
         self.slider = 0
         
@@ -71,6 +74,10 @@ class ViewerBotGUI(customtkinter.CTk):
         # Label for status
         self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
         self.status_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
+
+        # Label
+        self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO")
+        self.name_label.grid(column=1, row=9, padx=10, pady=2, sticky="e")
         
         # Variables for status and threads
         self.status = "Stopped"
@@ -149,6 +156,10 @@ class ViewerBotGUI(customtkinter.CTk):
                 for line in f:
                     self.proxylist.append(line.strip())
         self.proxy_imported = True
+        if self.proxylist == []:
+            self.proxylist = None
+            self.proxy_imported = False
+            messagebox.showwarning(title="WARNING", message="No proxy imported, the proxy list is empty. Proxies gonna be scraped.")
         # close the parameters window
         self.dialog.destroy()                   
 
