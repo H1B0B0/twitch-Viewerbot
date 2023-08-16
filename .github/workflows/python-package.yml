@@ -38,12 +38,19 @@ jobs:
       run: |
         pytest
         
-    - name: PyInstaller
+    - name: Build with PyInstaller
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         pip install pyinstaller
-        pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean --add-data "/home/menet/.local/lib/python3.11/site-packages/customtkinter:customtkinter/" --add-data "/home/menet/.local/lib/python3.11/site-packages/streamlink:streamlink/" --add-data "/home/menet/.local/lib/python3.11/site-packages/fake_useragent:fake_useragent/" --add-data "/home/menet/Desktop/autre/twitch_bot/src/twitchbot/interface_assets:interface_assets/" --add-data "/home/menet/Desktop/autre/twitch_bot/src/twitchbot:twitchbot/" --add-data "/home/menet/.local/lib/python3.11/site-packages/Crypto:Crypto/" "/home/menet/Desktop/autre/twitch_bot/src/twitchbot/main.py"
-    
+        pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean \
+        --add-data "/home/menet/.local/lib/python3.11/site-packages/customtkinter:customtkinter/" \
+        --add-data "/home/menet/.local/lib/python3.11/site-packages/streamlink:streamlink/" \
+        --add-data "/home/menet/.local/lib/python3.11/site-packages/fake_useragent:fake_useragent/" \
+        --add-data "$GITHUB_WORKSPACE/Desktop/autre/twitch_bot/src/twitchbot/interface_assets:interface_assets/" \
+        --add-data "$GITHUB_WORKSPACE/Desktop/autre/twitch_bot/src/twitchbot:twitchbot/" \
+        --add-data "$GITHUB_WORKSPACE/.local/lib/python3.11/site-packages/Crypto:Crypto/" \
+        "$GITHUB_WORKSPACE/Desktop/autre/twitch_bot/src/twitchbot/main.py"
+      
     - name: extraction of toml value
       if: startsWith(github.ref, 'refs/tags/')
       id: extract_values
