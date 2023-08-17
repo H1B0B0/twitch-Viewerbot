@@ -63,10 +63,10 @@ jobs:
           --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\customtkinter;customtkinter\\" `
           --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\streamlink;streamlink\\" `
           --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\fake_useragent;fake_useragent\\" `
-          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot\\interface_assets;interface_assets\\" `
-          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot;twitchbot\\" `
+          --add-data "$GITHUB_WORKSPACE\\src\\twitchbot\\interface_assets;interface_assets\\" `
+          --add-data "$GITHUB_WORKSPACE\\src\\twitchbot;twitchbot\\" `
           --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\Crypto;Crypto\\" `
-          "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot\\main.py"
+          "$GITHUB_WORKSPACE\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
         with:
