@@ -54,7 +54,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pyinstaller==5.8.0
-          python -m pip install Crypto
+          python -m pip install crypto
           pip install .[dev]
 
       - name: Get Python site packages path
@@ -69,10 +69,10 @@ jobs:
           pyinstaller --noconfirm --onefile --console --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot\\" `
-          --paths "${env:pythonLocation}\\Lib\\site-packages\\customtkinter:customtkinter/" `
-          --paths "${env:pythonLocation}\\Lib\\site-packages\\streamlink:streamlink/" `
-          --paths "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent:fake_useragent/" `
-          --paths "${env:pythonLocation}\\Lib\\site-packages\\Crypto:Crypto/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter:customtkinter/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink:streamlink/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent:fake_useragent/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto:Crypto/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
