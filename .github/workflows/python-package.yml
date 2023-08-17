@@ -12,7 +12,6 @@ on:
 
 jobs:
   test_and_build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -37,56 +36,56 @@ jobs:
     - name: pytest
       run: |
         pytest
-        
-    - name: Build with PyInstaller
-      if: startsWith(github.ref, 'refs/tags/')
-      run: |
-        pip install pyinstaller
-        pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean \
-        --add-data "/home/menet/.local/lib/python3.11/site-packages/customtkinter:customtkinter/" \
-        --add-data "/home/menet/.local/lib/python3.11/site-packages/streamlink:streamlink/" \
-        --add-data "/home/menet/.local/lib/python3.11/site-packages/fake_useragent:fake_useragent/" \
-        --add-data "$GITHUB_WORKSPACE/twitch_bot/src/twitchbot/interface_assets:interface_assets/" \
-        --add-data "$GITHUB_WORKSPACE/twitch_bot/src/twitchbot:twitchbot/" \
-        --add-data "$GITHUB_WORKSPACE/.local/lib/python3.11/site-packages/Crypto:Crypto/" \
-        "$GITHUB_WORKSPACE/twitch_bot/src/twitchbot/main.py"
-      
-    - name: extraction of toml value
-      if: startsWith(github.ref, 'refs/tags/')
-      id: extract_values
-      run: |
-        version=$(grep -oP '(?<=version = ")[^"]*' pyproject.toml)
-        release_name=$(grep -oP '(?<=name = ")[^"]*' pyproject.toml)
-        echo "::set-output name=version::$version"
-        echo "::set-output name=release_name::$release_name"
-      
-    - name: creation of draft release
-      if: startsWith(github.ref, 'refs/tags/')
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.extract_values.outputs.version }}
-        release_name: ${{ steps.extract_values.outputs.release_name }}
-        draft: true
-        prerelease: false
 
-    - name: upload of the folder
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/Twitch ViewerBOT.exe
-        asset_name: Twitch ViewerBOT.exe
-        asset_content_type: application/exe
-      
-    - name: publication of the release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: eregon/publish-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}
+  build-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/checkout@v1
+      - name: Install Python
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - name: Install requirements
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build pytest
+          python -m pip install pyinstaller
+          pip install .[dev]
+      - name: Run PyInstaller
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          python -m PyInstaller qwiklab_badge_checker.spec
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Windows_qwiklabs
+          path: dist/qwiklab_badge_checker.exe
+
+      - name: create release
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.head_commit.message }}
+          release_name: ${{ github.event.head_commit.message }}
+          body: |
+            Test Release v1.0.0
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: dist/qwiklab_badge_checker.exe
+          asset_name: Qwiklab-Badge-Checker-Windows-amd64.exe
+          asset_content_type: application/zip
