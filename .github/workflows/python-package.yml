@@ -67,12 +67,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
-          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/customtkinter;customtkinter\\" `
-          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/Crypto;Crypto\\" `
-          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/streamlink;streamlink\\" `
-          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/fake_useragent;fake_useragent\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot\\" `
+          --paths "${env:pythonLocation}\\Lib\\site-packages" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
