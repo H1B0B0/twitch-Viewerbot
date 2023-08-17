@@ -55,6 +55,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install build pytest
           python -m pip install pyinstaller
+          python -m pip install Crypto
           pip install .[dev]
 
       - name: Get Python site packages path
@@ -66,10 +67,13 @@ jobs:
       - name: Run PyInstaller
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
+          pyinstaller --noconfirm --onefile --console --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot\\" `
-          --paths "${env:pythonLocation}\\Lib\\site-packages" `
+          --paths "${env:pythonLocation}\\Lib\\site-packages\\customtkinter:customtkinter/" `
+          --paths "${env:pythonLocation}\\Lib\\site-packages\\streamlink:streamlink/" `
+          --paths "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent:fake_useragent/" `
+          --paths "${env:pythonLocation}\\Lib\\site-packages\\Crypto:Crypto/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
@@ -87,7 +91,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Test Release v1.0.0
+            Enjoy the software improvement!!!!
           draft: false
           prerelease: false
 
