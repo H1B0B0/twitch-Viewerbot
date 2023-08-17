@@ -99,6 +99,6 @@ jobs:
           GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         with:
           upload_url: ${{steps.create_release.outputs.upload_url}}
-          asset_path: dist/qwiklab_badge_checker.exe
-          asset_name: Qwiklab-Badge-Checker-Windows-amd64.exe
-          asset_content_type: application/zip
+          asset_path: dist/Twitch ViewerBOT.exe
+          asset_name: Twitch ViewerBOT.exe
+          asset_content_type: application/exe
