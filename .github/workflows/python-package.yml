@@ -56,16 +56,22 @@ jobs:
           python -m pip install build pytest
           python -m pip install pyinstaller
           pip install .[dev]
+
+      - name: Get Python site packages path
+        if: startsWith(github.ref, 'refs/tags/')
+        id: get-site-packages-path
+        run: echo "::set-output name=site-packages-path::$(python -c 'import site; print(site.getsitepackages()[0])')'
+
       - name: Run PyInstaller
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
-          --add-data "c:\\hostedtoolcache\\windows\\python\\3.11.4\\x64\\lib\\site-packages\\customtkinter;customtkinter\\" `
-          --add-data "c:\\hostedtoolcache\\windows\\python\\3.11.4\\x64\\lib\\site-packagesstreamlink;streamlink\\" `
-          --add-data "c:\\hostedtoolcache\\windows\\python\\3.11.4\\x64\\lib\\site-packagesfake_useragent;fake_useragent\\" `
+          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/customtkinter;customtkinter\\" `
+          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/Crypto;Crypto\\" `
+          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/streamlink;streamlink\\" `
+          --add-data "${{ steps.get-site-packages-path.outputs.site-packages-path }}/fake_useragent;fake_useragent\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets\\" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot\\" `
-          --add-data "c:\hostedtoolcache\windows\python\3.11.4\x64\lib\site-packages\Crypto;Crypto\\" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
