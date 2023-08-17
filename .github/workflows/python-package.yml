@@ -66,7 +66,7 @@ jobs:
           --add-data "$GITHUB_WORKSPACE\\src\\twitchbot\\interface_assets;interface_assets\\" `
           --add-data "$GITHUB_WORKSPACE\\src\\twitchbot;twitchbot\\" `
           --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\Crypto;Crypto\\" `
-          "$GITHUB_WORKSPACE\\src\\twitchbot\\main.py"
+          "/src/twitchbot/main.py"
       
       - uses: actions/upload-artifact@v2
         with:
