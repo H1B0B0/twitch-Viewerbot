@@ -59,13 +59,13 @@ jobs:
       - name: Run PyInstaller
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean ^
-          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\customtkinter;customtkinter\\" ^
-          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\streamlink;streamlink\\" ^
-          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\fake_useragent;fake_useragent\\" ^
-          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot\\interface_assets;interface_assets\\" ^
-          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot;twitchbot\\" ^
-          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\Crypto;Crypto\\" ^
+          pyinstaller --noconfirm --onefile --windowed --icon "src/twitchbot/interface_assets/R.ico" --name "Twitch ViewerBOT" --clean `
+          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\customtkinter;customtkinter\\" `
+          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\streamlink;streamlink\\" `
+          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\fake_useragent;fake_useragent\\" `
+          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot\\interface_assets;interface_assets\\" `
+          --add-data "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot;twitchbot\\" `
+          --add-data "$GITHUB_WORKSPACE\\.local\\lib\\python3.11\\site-packages\\Crypto;Crypto\\" `
           "$GITHUB_WORKSPACE\\twitch_bot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
