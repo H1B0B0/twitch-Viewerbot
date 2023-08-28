@@ -73,7 +73,7 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
-          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"   
+          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
       
       - uses: actions/upload-artifact@v2
         with:

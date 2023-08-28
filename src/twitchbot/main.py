@@ -1,4 +1,5 @@
 import customtkinter
+import platform
 from pathlib import Path
 from threading import Thread
 from tkinter import messagebox
@@ -17,11 +18,8 @@ class ViewerBotGUI(customtkinter.CTk):
         super().__init__()
         self.title("Viewerbot")
         customtkinter.set_appearance_mode("System")
-        self.title("Viewerbot")
-        try:
+        if platform.system() == "Windows":
             self.wm_iconbitmap(ICON)
-        except:
-            pass
         customtkinter.set_default_color_theme(THEME)
         self.nb_requests = 0
         self.slider = 0
