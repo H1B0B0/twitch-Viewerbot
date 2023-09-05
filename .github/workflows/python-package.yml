@@ -90,7 +90,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Enjoy the software improvement!!!!
+            Bug fix: "use external data"
           draft: false
           prerelease: false
       
