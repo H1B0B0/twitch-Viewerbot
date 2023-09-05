@@ -27,7 +27,7 @@ class ViewerBot:
 
     def create_session(self):
         # Create a session for making requests
-        self.ua = UserAgent(use_external_data=True)
+        self.ua = UserAgent()
         self.session = Streamlink()
         self.session.set_option("http-headers", {
             "Accept-Language": "en-US,en;q=0.5",
