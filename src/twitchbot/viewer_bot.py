@@ -87,19 +87,6 @@ class ViewerBot:
             self.proxyreturned1time = True
             return self.proxylist
         
-    def get_new_proxies(self):
-        # Fetch self.proxies from an API or use the provided proxy list
-            try:
-                response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
-                if response.status_code == 200:
-                    lines = []
-                    lines = response.text.split("\n")
-                    lines = [line.strip() for line in lines if line.strip()]
-                    self.proxyrefreshed = True
-                    self.proxies = []
-                    self.proxies = self.lines
-            except:
-                pass
 
     def get_url(self):
         # Retrieve the URL for the channel's stream
