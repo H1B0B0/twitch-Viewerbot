@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "::set-output name=site-packages-path::$(python -c "import site; print(site.getsitepackages()[0].replace('\\\\', '\\\\\\\\'))")"
 
-      - name: Run PyInstaller
+      - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
@@ -74,6 +74,10 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
+          
+      - name: Run PyInstaller for the second program
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
           pyinstaller --noconfirm --onefile --console --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT performance" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
@@ -82,7 +86,7 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main_just_terminal.py"
-      
+
       - uses: actions/upload-artifact@v2
         with:
           name: Windows_qwiklabs
