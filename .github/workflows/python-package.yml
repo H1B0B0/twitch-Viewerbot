@@ -121,18 +121,26 @@ jobs:
           echo "asset_name=Twitch ViewerBOT performance.exe" >> $GITHUB_ENV
           echo "asset_content_type=application/exe" >> $GITHUB_ENV
       
-      - name: Upload Release Asset
+      - name: Upload Release Asset 1
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: |
-            dist/Twitch ViewerBOT.exe
-            dist/Twitch ViewerBOT performance.exe
-          asset_name: |
-            Twitch ViewerBOT.exe
-            Twitch ViewerBOT performance.exe
+          asset_path: dist/Twitch ViewerBOT.exe
+          asset_name: Twitch ViewerBOT.exe
           asset_content_type: application/exe
-        
+      
+      - name: Upload Release Asset 2
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/Twitch ViewerBOT performance.exe
+          asset_name: Twitch ViewerBOT performance.exe
+          asset_content_type: application/exe
+    
+    
