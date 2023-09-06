@@ -106,8 +106,8 @@ class ViewerBotGUI(customtkinter.CTk):
             self.channel_name = self.channel_name_entry.get()
             self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.proxy_imported, self.slider.get(), type_of_proxy=self.segemented_button_var)
             self.thread = Thread(target=self.bot.main)
-            self.after(50, self.configure_label)
-            self.after(50, self.proxies_number)
+            self.after(200, self.configure_label)
+            self.after(200, self.proxies_number)
             self.thread.daemon = True
             self.thread.start()
             # Change status and disable/enable buttons
@@ -138,8 +138,11 @@ class ViewerBotGUI(customtkinter.CTk):
         try:
             alive_text = f"Alive: {len(self.bot.proxies)}"
             self.alive_label.configure(text=alive_text)
-            if len(self.bot.proxies) < 100 and self.bot.proxy_imported==False:
-                self.bot.get_new_proxies()
+            if len(self.bot.proxies) < 50 and self.bot.proxyrefreshed==True:
+                self.bot.proxyrefreshed=False
+            if len(self.bot.proxies) < 50 and self.bot.proxy_imported==False and self.bot.proxyrefreshed==False:
+                self.bot.get_proxies()
+                self.bot.proxyrefreshed=True
                 self.proxies_number()
             elif not self.message_gived and len(self.bot.proxies) < 100:
                 messagebox.showwarning(title="Warning", 
@@ -148,7 +151,7 @@ class ViewerBotGUI(customtkinter.CTk):
         except:
             pass
         self.update_idletasks()
-        app.after(50, app.configure_label)
+        app.after(200, app.configure_label)
 
     def proxies_number(self):
         try:
@@ -156,7 +159,7 @@ class ViewerBotGUI(customtkinter.CTk):
             self.total_label.configure(text=total_text)  # Use the 'text' attribute to update label text
             self.update_idletasks()
         except:
-            self.after(50, self.proxies_number)
+            self.after(200, self.proxies_number)
 
     def show_dialog(self):
         self.proxylist = []
