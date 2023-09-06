@@ -128,10 +128,10 @@ jobs:
           GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: 
+          asset_path: |
             dist/Twitch ViewerBOT.exe
             dist/Twitch ViewerBOT performance.exe
-          asset_name: 
+          asset_name: |
             Twitch ViewerBOT.exe
             Twitch ViewerBOT performance.exe
           asset_content_type: application/exe
