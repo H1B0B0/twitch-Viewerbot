@@ -74,6 +74,14 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
+          pyinstaller --noconfirm --onefile --console --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT performance" --clean `
+          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
+          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
+          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main_just_terminal.py"
       
       - uses: actions/upload-artifact@v2
         with:
@@ -90,7 +98,11 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            Bug fix: "use external data"
+            # Improvements
+            - The program checks whether the proxy used is broken or not.
+            - The program displays new information about the proxy list
+            # Fix
+            - The imported proxy list cannot be used by the program
           draft: false
           prerelease: false
       
@@ -101,6 +113,9 @@ jobs:
           echo "asset_path=dist/Twitch ViewerBOT.exe" >> $GITHUB_ENV
           echo "asset_name=Twitch ViewerBOT.exe" >> $GITHUB_ENV
           echo "asset_content_type=application/exe" >> $GITHUB_ENV
+          echo "asset_path=dist/Twitch ViewerBOT performance.exe" >> $GITHUB_ENV
+          echo "asset_name=Twitch ViewerBOT performance.exe" >> $GITHUB_ENV
+          echo "asset_content_type=application/exe" >> $GITHUB_ENV
       
       - name: Upload Release Asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -109,7 +124,11 @@ jobs:
           GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/Twitch ViewerBOT.exe
-          asset_name: Twitch ViewerBOT.exe
+          asset_path: 
+            dist/Twitch ViewerBOT.exe
+            dist/Twitch ViewerBOT performance.exe
+          asset_name: 
+            Twitch ViewerBOT.exe
+            Twitch ViewerBOT performance.exe
           asset_content_type: application/exe
         

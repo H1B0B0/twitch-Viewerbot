@@ -23,6 +23,9 @@ class ViewerBotGUI(customtkinter.CTk):
         customtkinter.set_default_color_theme(THEME)
         self.nb_requests = 0
         self.slider = 0
+        self.nb_of_proxies = 0
+        self.nb_of_proxies_alive = 0
+        self.message_gived = False
         
         # Label for number of threads
         nb_threads_label = customtkinter.CTkLabel(self, text="Number of threads:")
@@ -73,9 +76,21 @@ class ViewerBotGUI(customtkinter.CTk):
         self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
         self.status_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
 
+        # Label for the proxy states
+        self.proxies_label = customtkinter.CTkLabel(self, text="proxy states")
+        self.proxies_label.grid(column=0, columnspan=2, row=9, padx=10, pady=2)
+
+        # Label for the proxy states
+        self.total_label = customtkinter.CTkLabel(self, text=f"Total:{self.nb_of_proxies}")
+        self.total_label.grid(column=0, row=10, padx=10, pady=2, sticky="w")
+
+        # Label for the proxy states
+        self.alive_label = customtkinter.CTkLabel(self, text=f"Alive:{self.nb_of_proxies_alive}")
+        self.alive_label.grid(column=1, row=10, padx=10, pady=2, sticky="e")
+
         # Label
         self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO")
-        self.name_label.grid(column=1, row=9, padx=10, pady=2, sticky="e")
+        self.name_label.grid(column=0, columnspan=2, row=11, padx=10, pady=2, sticky="e")
         
         # Variables for status and threads
         self.status = "Stopped"
@@ -92,6 +107,7 @@ class ViewerBotGUI(customtkinter.CTk):
             self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.proxy_imported, self.slider.get(), type_of_proxy=self.segemented_button_var)
             self.thread = Thread(target=self.bot.main)
             self.after(50, self.configure_label)
+            self.after(50, self.proxies_number)
             self.thread.daemon = True
             self.thread.start()
             # Change status and disable/enable buttons
@@ -103,7 +119,7 @@ class ViewerBotGUI(customtkinter.CTk):
             # Update status label and buttons
             self.status_label.configure(text=f"Status: {self.status}")
             # Append thread to list of threads
-            self.threads.append(self.thread)         
+            self.threads.append(self.thread)
         
     def stop_bot(self):
         if self.status == "Running":
@@ -119,8 +135,28 @@ class ViewerBotGUI(customtkinter.CTk):
 
     def configure_label(self):
         self.nb_requests_label.configure(text=f"Number of requests: {self.bot.nb_requests}")
+        try:
+            alive_text = f"Alive: {len(self.bot.proxies)}"
+            self.alive_label.configure(text=alive_text)
+            if len(self.bot.proxies) < 100 and self.bot.proxy_imported==False:
+                self.bot.get_new_proxies()
+                self.proxies_number()
+            elif not self.message_gived and len(self.bot.proxies) < 100:
+                messagebox.showwarning(title="Warning", 
+                                       message="Your proxies are expired or of poor quality,\n you need to import a better list or switch to automatic mode")
+                self.message_gived=True
+        except:
+            pass
         self.update_idletasks()
         app.after(50, app.configure_label)
+
+    def proxies_number(self):
+        try:
+            total_text = f"Total: {len(self.bot.proxies)}"
+            self.total_label.configure(text=total_text)  # Use the 'text' attribute to update label text
+            self.update_idletasks()
+        except:
+            self.after(50, self.proxies_number)
 
     def show_dialog(self):
         self.proxylist = []

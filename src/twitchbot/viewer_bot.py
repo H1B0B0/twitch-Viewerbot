@@ -6,6 +6,7 @@ from sys import exit
 from threading import Thread
 from streamlink import Streamlink
 from fake_useragent import UserAgent
+from requests import RequestException
 
 
 class ViewerBot:
@@ -22,8 +23,8 @@ class ViewerBot:
             self.type_of_proxy = type_of_proxy
         self.proxy_imported = proxy_imported
         self.timeout = timeout
-        self.channel_url = "https://www.twitch.tv/" + channel_name
-        self.proxyreturned1time = False 
+        self.channel_url = "https://www.twitch.tv/" + channel_name.lower()
+        self.proxyreturned1time = False
 
     def create_session(self):
         # Create a session for making requests
@@ -39,9 +40,38 @@ class ViewerBot:
             "Referer": "https://www.google.com/"
         })
         return self.session
+    
+    def make_request_with_retry(self, session, url, proxy, headers, proxy_used, max_retries=3):
+
+        for _ in range(max_retries):
+            try:
+                response = session.head(url, proxies=proxy, headers=headers, timeout=(self.timeout/1000))
+                if response.status_code == 200:
+                    return response
+                else:
+                    # Remove the proxy from the list if it exceeded max_retries
+                    if proxy_used in self.proxies:
+                        self.proxies.remove(proxy_used)
+                    return None
+            except RequestException as e:
+                if "400 Bad Request" in str(e):
+                    if proxy_used in self.proxies:
+                        self.proxies.remove(proxy_used)
+                if "403 Forbidden" in str(e):
+                    if proxy_used in self.proxies:
+                        self.proxies.remove(proxy_used)
+                if "RemoteDisconnected" in str(e):
+                    if proxy_used in self.proxies:
+                        self.proxies.remove(proxy_used)
+                if "connect timeout=10.0" in str(e):
+                    if proxy_used in self.proxies:
+                        self.proxies.remove(proxy_used)
+            continue
+        return None
 
     def get_proxies(self):
-        # Fetch proxies from an API or use the provided proxy list
+        # Fetch self.proxies from an API or use the provided proxy list
+
         if self.proxylist == None or self.proxyrefreshed == False: 
             try:
                 response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
@@ -56,6 +86,20 @@ class ViewerBot:
         elif self.proxyreturned1time == False:
             self.proxyreturned1time = True
             return self.proxylist
+        
+    def get_new_proxies(self):
+        # Fetch self.proxies from an API or use the provided proxy list
+            try:
+                response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
+                if response.status_code == 200:
+                    lines = []
+                    lines = response.text.split("\n")
+                    lines = [line.strip() for line in lines if line.strip()]
+                    self.proxyrefreshed = True
+                    self.proxies = []
+                    self.proxies = self.lines
+            except:
+                pass
 
     def get_url(self):
         # Retrieve the URL for the channel's stream
@@ -94,11 +138,13 @@ class ViewerBot:
                 # Refresh the proxy after a random interval
                 current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                 with requests.Session() as s:
-                    response = s.head(current_url, proxies=current_proxy, headers=headers, timeout=(self.timeout/1000))
-                self.nb_requests += 1
-                proxy_data['time'] = time.time()
-                self.all_proxies[current_index] = proxy_data
-        except:
+                    response = self.make_request_with_retry(s, current_url, current_proxy, headers, proxy_data['proxy'])
+                if response:
+                    self.nb_requests += 1
+                    proxy_data['time'] = time.time()
+                    self.all_proxies[current_index] = proxy_data
+        except Exception as e:
+            print(e)
             pass
 
     def stop(self):
@@ -107,13 +153,13 @@ class ViewerBot:
 
     def main(self):
 
-        proxies = self.get_proxies()
+        self.proxies = self.get_proxies()
         start = datetime.datetime.now()
         self.create_session()
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
-            for p in proxies:
+            for p in self.proxies:
                 # Add each proxy to the all_proxies list
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
@@ -124,8 +170,8 @@ class ViewerBot:
                 self.threaded.start()
 
             if elapsed_seconds >= 300 and not self.proxy_imported:
-                # Refresh the proxies after 300 seconds (5 minutes)
+                # Refresh the self.proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
-                proxies = self.get_proxies()
+                self.proxies = self.get_proxies()
                 elapsed_seconds = 0  # Reset elapsed time
                 self.proxyrefreshed = False
