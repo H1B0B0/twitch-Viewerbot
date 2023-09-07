@@ -42,31 +42,24 @@ class ViewerBot:
         return self.session
     
     def make_request_with_retry(self, session, url, proxy, headers, proxy_used, max_retries=3):
-
         for _ in range(max_retries):
             try:
-                response = session.head(url, proxies=proxy, headers=headers, timeout=(self.timeout/1000))
+                # send requests to the twitch service
+                response = session.head(url, proxies=proxy, headers=headers, timeout=((self.timeout/1000)+1))
                 if response.status_code == 200:
                     return response
                 else:
-                    # Remove the proxy from the list if it exceeded max_retries
+                    # Remove bad proxy from the list
                     if proxy_used in self.proxies:
                         self.proxies.remove(proxy_used)
                     return None
             except RequestException as e:
-                if "400 Bad Request" in str(e):
+                # Sort exception for remove bad proxy from the list
+                if "400 Bad Request" in str(e) or "403 Forbidden" in str(e) or "RemoteDisconnected" in str(e) or "connect timeout=10.0" in str(e):
                     if proxy_used in self.proxies:
                         self.proxies.remove(proxy_used)
-                if "403 Forbidden" in str(e):
-                    if proxy_used in self.proxies:
-                        self.proxies.remove(proxy_used)
-                if "RemoteDisconnected" in str(e):
-                    if proxy_used in self.proxies:
-                        self.proxies.remove(proxy_used)
-                if "connect timeout=10.0" in str(e):
-                    if proxy_used in self.proxies:
-                        self.proxies.remove(proxy_used)
-            continue
+                continue
+
         return None
 
     def get_proxies(self):
@@ -149,7 +142,7 @@ class ViewerBot:
             for p in self.proxies:
                 # Add each proxy to the all_proxies list
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
-
+            
             for i in range(0, int(self.nb_of_threads)):
                 # Open the URL using a random proxy from the all_proxies list
                 self.threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))

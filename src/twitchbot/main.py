@@ -90,7 +90,7 @@ class ViewerBotGUI(customtkinter.CTk):
 
         # Label
         self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO")
-        self.name_label.grid(column=0, columnspan=2, row=11, padx=10, pady=2, sticky="e")
+        self.name_label.grid(column=0, columnspan=2, row=11, padx=10, pady=2)
         
         # Variables for status and threads
         self.status = "Stopped"
@@ -144,7 +144,7 @@ class ViewerBotGUI(customtkinter.CTk):
                 self.bot.get_proxies()
                 self.bot.proxyrefreshed=True
                 self.proxies_number()
-            elif not self.message_gived and len(self.bot.proxies) < 100:
+            elif not self.message_gived and len(self.bot.proxies) < 100 and self.bot.proxy_imported==True:
                 messagebox.showwarning(title="Warning", 
                                        message="Your proxies are expired or of poor quality,\n you need to import a better list or switch to automatic mode")
                 self.message_gived=True
