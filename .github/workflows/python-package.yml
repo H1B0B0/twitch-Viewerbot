@@ -73,6 +73,9 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\ctypes;ctypes/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\uuid;uuid/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
           
       - name: Run PyInstaller for the second program
@@ -85,7 +88,11 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\ctypes;ctypes/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\uuid;uuid/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main_just_terminal.py"
+
 
       - uses: actions/upload-artifact@v2
         with:
