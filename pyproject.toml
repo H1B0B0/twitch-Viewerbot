@@ -8,7 +8,9 @@ dependencies = [
     "requests==2.31.0",
     "streamlink==5.5.1",
     "fake_useragent==1.1.3",
-    "customtkinter==5.1.3"
+    "customtkinter==5.1.3",
+    "pycryptodome==3.17",
+    "cffi==1.15.1"
 ]
 
 [project.optional-dependencies]
