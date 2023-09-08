@@ -75,20 +75,6 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
-          
-      - name: Run PyInstaller for the second program
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          pyinstaller --noconfirm --onefile --console --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT performance" --clean `
-          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
-          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
-          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main_just_terminal.py"
-
 
       - uses: actions/upload-artifact@v2
         with:
@@ -106,7 +92,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           body: |
             # Fix
-            - Viewer bot performance error in start fixed
+            - Viewer.bot.performance Software  removed because he can't be compiled for this time
           draft: false
           prerelease: false
       
@@ -116,9 +102,6 @@ jobs:
           echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
           echo "asset_path=dist/Twitch ViewerBOT.exe" >> $GITHUB_ENV
           echo "asset_name=Twitch ViewerBOT.exe" >> $GITHUB_ENV
-          echo "asset_content_type=application/exe" >> $GITHUB_ENV
-          echo "asset_path=dist/Twitch ViewerBOT performance.exe" >> $GITHUB_ENV
-          echo "asset_name=Twitch ViewerBOT performance.exe" >> $GITHUB_ENV
           echo "asset_content_type=application/exe" >> $GITHUB_ENV
       
       - name: Upload Release Asset 1
@@ -132,15 +115,5 @@ jobs:
           asset_name: Twitch ViewerBOT.exe
           asset_content_type: application/exe
       
-      - name: Upload Release Asset 2
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/Twitch ViewerBOT performance.exe
-          asset_name: Twitch ViewerBOT performance.exe
-          asset_content_type: application/exe
     
     
