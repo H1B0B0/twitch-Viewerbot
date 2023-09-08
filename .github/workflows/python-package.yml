@@ -102,11 +102,8 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # Improvements
-            - The program checks whether the proxy used is broken or not.
-            - The program displays new information about the proxy list
             # Fix
-            - The imported proxy list cannot be used by the program
+            - Viewer bot performance error in start fixed
           draft: false
           prerelease: false
       
