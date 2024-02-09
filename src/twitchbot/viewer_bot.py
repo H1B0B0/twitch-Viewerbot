@@ -3,11 +3,10 @@ import random
 import datetime
 import requests
 from sys import exit
-from threading import Thread
+from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
-
 
 class ViewerBot:
     def __init__(self, nb_of_threads, channel_name, proxylist, proxy_imported, timeout, stop=False, type_of_proxy="http"):
@@ -25,6 +24,7 @@ class ViewerBot:
         self.timeout = timeout
         self.channel_url = "https://www.twitch.tv/" + channel_name.lower()
         self.proxyreturned1time = False
+        self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
 
     def create_session(self):
         # Create a session for making requests
@@ -126,6 +126,8 @@ class ViewerBot:
         except Exception as e:
             print(e)
             pass
+        finally:
+            self.thread_semaphore.release()  # Release the semaphore
 
     def stop(self):
         # Stop the ViewerBot by setting the stop event
@@ -143,9 +145,10 @@ class ViewerBot:
                 # Add each proxy to the all_proxies list
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
             
-            for i in range(0, int(self.nb_of_threads)):
-                # Open the URL using a random proxy from the all_proxies list
-                self.threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
+            for proxy_data in self.all_proxies:
+                # Open the URL using a proxy from the all_proxies list
+                self.thread_semaphore.acquire()  # Acquire the semaphore
+                self.threaded = Thread(target=self.open_url, args=(proxy_data,))
                 self.threaded.daemon = True  # This thread dies when the main thread (only non-daemon thread) exits.
                 self.threaded.start()
 
