@@ -10,6 +10,15 @@ from threading import Thread
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from threading import Semaphore
+from rich.console import Console
+from rich.live import Live
+from rich.prompt import Prompt
+from rich.spinner import Spinner
+from rich.table import Table
+from rich.text import Text
+
+console = Console()
+
 
 # Session creating for request
 ua = UserAgent()
@@ -28,7 +37,7 @@ class ViewerBot:
     def __init__(self, nb_of_threads, channel_name, proxy_file=None, proxy_imported=False):
         self.proxy_imported = proxy_imported
         self.proxy_file = proxy_file
-        self.nb_of_threads = nb_of_threads
+        self.nb_of_threads = int(nb_of_threads)
         self.channel_name = channel_name
         self.request_count = 0  # initialize the counter variable
         self.all_proxies = []
@@ -59,6 +68,9 @@ class ViewerBot:
                         self.proxyrefreshed = True
                         return lines
                 except:
+                    if len(response.text) == "":
+                        console.print("Limit of proxy retrieval reached. Retry later", style="bold red")
+                        return []
                     pass
 
     def get_url(self):
@@ -102,32 +114,44 @@ class ViewerBot:
             thread.join()
         sys.exit()
 
+    from rich.table import Table
+    from rich.text import Text
+
+    # ...
+
     def main(self):
-        print(f"Number of requests sent: {self.request_count}", end="", flush=True)  # initial print statement
-        proxies = self.get_proxies()
-        start = datetime.datetime.now()
-        while True:
-            elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+        with Live(console=console, refresh_per_second=10) as live:  # refresh 4 times per second
+            start = datetime.datetime.now()
+            proxies = self.get_proxies()
+            while True:
+                elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
-            for p in proxies:
-                self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+                for p in proxies:
+                    self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
-            for i in range(0, int(self.nb_of_threads)):
-                self.thread_semaphore.acquire()  # Acquire the semaphore
-                threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
-                threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
-                # print the request count
-                print(f"\rNumber of requests sent: {self.request_count}", end="", flush=True)
-                threaded.start()
+                for i in range(0, int(self.nb_of_threads)):
+                    self.thread_semaphore.acquire()  # Acquire the semaphore
+                    threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
+                    threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
+                    threaded.start()
 
-            if elapsed_seconds >= 300 and self.proxy_imported == False:
-                # Refresh the proxies after 300 seconds (5 minutes)
-                start = datetime.datetime.now()
-                self.proxyrefreshed = False
-                proxies = self.get_proxies()
-                elapsed_seconds = 0  # Reset elapsed time
+                if elapsed_seconds >= 300 and self.proxy_imported == False:
+                    # Refresh the proxies after 300 seconds (5 minutes)
+                    start = datetime.datetime.now()
+                    self.proxyrefreshed = False
+                    proxies = self.get_proxies()
+                    elapsed_seconds = 0  # Reset elapsed time
 
-            shuffle(self.all_proxies)
+                shuffle(self.all_proxies)
+
+                # Update the live display with the number of requests sent
+                table = Table(show_header=False, show_edge=False)
+                table.add_column(justify="right")
+                table.add_column(justify="left")
+                text = Text(f"Number of requests sent: {self.request_count}")
+                text.stylize("bold magenta")
+                table.add_row(text, Spinner("arc"))
+                live.update(table)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -136,14 +160,15 @@ if __name__ == '__main__':
     parser.add_argument('-proxyfile', type=str, help='File containing list of proxies')
     args = parser.parse_args()
 
-    nb_of_threads = args.threads if args.threads else int(input("Enter the number of threads: "))
-    channel_name = args.twitchname if args.twitchname else input("Enter the name of the Twitch channel: ")
-    proxy_file = args.proxyfile if args.proxyfile else input("Do you wan't to use a proxy file? (y/n): ")
+    nb_of_threads = args.threads if args.threads else Prompt.ask("Enter the number of threads", default="100")
+    channel_name = args.twitchname if args.twitchname else Prompt.ask("Enter the name of the Twitch channel")
+    proxy_file = args.proxyfile if args.proxyfile else Prompt.ask("Do you want to use a proxy file?", choices=["y", "n"], default="n")
 
     if proxy_file.lower().startswith('y'):
-        proxy_file = args.proxyfile if args.proxyfile else input("Enter the path of the proxy file: ")
+        proxy_file = args.proxyfile if args.proxyfile else Prompt.ask("Enter the path of the proxy file")
         proxy_imported = True
     else:
         proxy_file = None
+        proxy_imported=False
     bot = ViewerBot(nb_of_threads=nb_of_threads, channel_name=channel_name, proxy_file=proxy_file, proxy_imported=proxy_imported)
     bot.main()
