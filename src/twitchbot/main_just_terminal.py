@@ -1,4 +1,4 @@
-import os
+import signal
 import sys
 import argparse
 import time
@@ -45,6 +45,7 @@ class ViewerBot:
         self.proxyrefreshed = False
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
+        self.active_threads = 0
 
     def get_proxies(self):
         # Fetch proxies from an API or use the provided proxy list
@@ -84,8 +85,32 @@ class ViewerBot:
         except:
             pass
         return url
+    
+    def stop(self):
+        console.print("[bold red]Bot has been stopped[/bold red]")        
+        for thread in self.processes:
+            thread.join()
+        sys.exit()
+
+    def update_display(self):
+        with Live(console=console, refresh_per_second=10) as live:
+            while True:
+                table = Table(show_header=False, show_edge=False)
+                table.add_column(justify="right")
+                table.add_column(justify="left")
+                
+                text = Text(f"Number of requests sent: {self.request_count}")
+                text.stylize("bold magenta")
+                table.add_row(text, Spinner("aesthetic"))
+                
+                active_threads_text = Text(f"Active threads: {self.active_threads}")
+                active_threads_text.stylize("bold cyan")  # add style to the active threads text
+                table.add_row(active_threads_text, Spinner("aesthetic"))  # display the number of active threads
+                
+                live.update(table)
 
     def open_url(self, proxy_data):
+        self.active_threads += 1
         try:
             headers = {'User-Agent': ua.random}
             current_index = self.all_proxies.index(proxy_data)
@@ -98,55 +123,46 @@ class ViewerBot:
                     current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                     with requests.Session() as s:
                         s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
-                        self.request_count += 1  # increment the counter variable
+                        self.request_count += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
             except:
                 pass
             finally:
+                self.active_threads -= 1
                 self.thread_semaphore.release()  # Release the semaphore
 
         except (KeyboardInterrupt):
             sys.exit()
 
-    def stop(self):
-        for thread in self.processes:
-            thread.join()
-        sys.exit()
-
     def main(self):
-        with Live(console=console, refresh_per_second=10) as live:
-            start = datetime.datetime.now()
-            proxies = self.get_proxies()
-            while True:
-                elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+        start = datetime.datetime.now()
+        proxies = self.get_proxies()
 
-                for p in proxies:
-                    self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+        signal.signal(signal.SIGINT, lambda signal, frame: self.stop())
 
-                for i in range(0, int(self.nb_of_threads)):
-                    self.thread_semaphore.acquire()  # Acquire the semaphore
+        # Start a separate thread for updating the display
+        self.display_thread = Thread(target=self.update_display)
+        self.display_thread.start()
+        while True:
+            elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+
+            for p in proxies:
+                self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
+
+            for i in range(0, int(self.nb_of_threads)):
+                acquired = self.thread_semaphore.acquire()  # Acquire the semaphore with a timeout
+                if acquired:
                     threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
                     threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                     threaded.start()
 
-                if elapsed_seconds >= 300 and self.proxy_imported == False:
-                    # Refresh the proxies after 300 seconds (5 minutes)
-                    start = datetime.datetime.now()
-                    self.proxyrefreshed = False
-                    proxies = self.get_proxies()
-                    elapsed_seconds = 0  # Reset elapsed time
-
-                shuffle(self.all_proxies)
-
-                # Update the live display with the number of requests sent
-                table = Table(show_header=False, show_edge=False)
-                table.add_column(justify="right")
-                table.add_column(justify="left")
-                text = Text(f"Number of requests sent: {self.request_count}")
-                text.stylize("bold magenta")
-                table.add_row(text, Spinner("arc"))
-                live.update(table)
+            if elapsed_seconds >= 300 and self.proxy_imported == False:
+                # Refresh the proxies after 300 seconds (5 minutes)
+                start = datetime.datetime.now()
+                self.proxyrefreshed = False
+                proxies = self.get_proxies()
+                elapsed_seconds = 0  # Reset elapsed time
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -166,4 +182,7 @@ if __name__ == '__main__':
         proxy_file = None
         proxy_imported=False
     bot = ViewerBot(nb_of_threads=nb_of_threads, channel_name=channel_name, proxy_file=proxy_file, proxy_imported=proxy_imported)
-    bot.main()
+    try:
+        bot.main()
+    except KeyboardInterrupt:
+        bot.stop()
