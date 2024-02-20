@@ -114,13 +114,8 @@ class ViewerBot:
             thread.join()
         sys.exit()
 
-    from rich.table import Table
-    from rich.text import Text
-
-    # ...
-
     def main(self):
-        with Live(console=console, refresh_per_second=10) as live:  # refresh 4 times per second
+        with Live(console=console, refresh_per_second=10) as live:
             start = datetime.datetime.now()
             proxies = self.get_proxies()
             while True:
