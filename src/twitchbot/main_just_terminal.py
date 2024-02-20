@@ -46,6 +46,7 @@ class ViewerBot:
         self.channel_url = "https://www.twitch.tv/" + self.channel_name
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
         self.active_threads = 0
+        self.should_stop = False
 
     def get_proxies(self):
         # Fetch proxies from an API or use the provided proxy list
@@ -88,9 +89,7 @@ class ViewerBot:
     
     def stop(self):
         console.print("[bold red]Bot has been stopped[/bold red]")        
-        for thread in self.processes:
-            thread.join()
-        sys.exit()
+        self.should_stop = True  # Set the flag to True
 
     def update_display(self):
         with Live(console=console, refresh_per_second=10) as live:
@@ -108,6 +107,8 @@ class ViewerBot:
                 table.add_row(active_threads_text, Spinner("aesthetic"))  # display the number of active threads
                 
                 live.update(table)
+                if self.should_stop:
+                        sys.exit()
 
     def open_url(self, proxy_data):
         self.active_threads += 1
@@ -133,7 +134,7 @@ class ViewerBot:
                 self.thread_semaphore.release()  # Release the semaphore
 
         except (KeyboardInterrupt):
-            sys.exit()
+            self.should_stop = True
 
     def main(self):
         start = datetime.datetime.now()
@@ -143,6 +144,7 @@ class ViewerBot:
 
         # Start a separate thread for updating the display
         self.display_thread = Thread(target=self.update_display)
+        self.display_thread.daemon = True
         self.display_thread.start()
         while True:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
@@ -163,6 +165,9 @@ class ViewerBot:
                 self.proxyrefreshed = False
                 proxies = self.get_proxies()
                 elapsed_seconds = 0  # Reset elapsed time
+
+            if self.should_stop:
+                sys.exit()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -186,3 +191,4 @@ if __name__ == '__main__':
         bot.main()
     except KeyboardInterrupt:
         bot.stop()
+        sys.exit()
