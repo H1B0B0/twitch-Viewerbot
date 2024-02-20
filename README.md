@@ -51,7 +51,7 @@ python3 main_just_terminal.py
 ```
 or 
 ```shell
-python3 script.py -threads nb_threads -twitchname example_channel
+python3 script.py -threads nb_threads -twitchname example_channel  -proxyfile path/to/your/proxylist
 ```
 or
 ```shell
