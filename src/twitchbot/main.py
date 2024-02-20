@@ -11,7 +11,7 @@ ICON = current_path/"interface_assets"/"R.ico"
 THEME = current_path/"interface_assets"/"purple.json"
 
 SLIDER_MIN = 1000
-SLIDER_MAX = 10000
+SLIDER_MAX = 20000
 
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
