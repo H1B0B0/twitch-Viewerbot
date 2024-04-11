@@ -92,7 +92,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           body: |
             # Fix
-            - Viewer.bot.performance Software  removed because he can't be compiled for this time
+            - Problem with the scraped proxies fixed.
           draft: false
           prerelease: false
       
