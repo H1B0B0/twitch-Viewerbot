@@ -201,6 +201,28 @@ class ViewerBotGUI(customtkinter.CTk):
                     link = customtkinter.CTkButton(dialog, text="Subscribe", command=open_link)
                     link.pack(pady=10, padx=10)
                     dialog.mainloop()
+                    return """
+                        <html>
+                            <head>
+                                <style>
+                                    body {
+                                        font-family: Arial, sans-serif;
+                                        background-color: #f0f0f0;
+                                        color: #333;
+                                        padding: 30px;
+                                    }
+                                    .message {
+                                        font-size: 24px;
+                                        font-weight: bold;
+                                        color: #FF0000;  # Red text
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="message">You are not subscribed</div>
+                            </body>
+                        </html>
+                        """
             else:
                 dialog = customtkinter.CTkInputDialog()
                 dialog.title("Join the server")
@@ -209,6 +231,28 @@ class ViewerBotGUI(customtkinter.CTk):
                 link = customtkinter.CTkButton(dialog, text="Join", command=open_link_discord)
                 link.pack(pady=10, padx=10)
                 dialog.mainloop()
+                return """
+                    <html>
+                        <head>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    background-color: #f0f0f0;
+                                    color: #333;
+                                    padding: 30px;
+                                }
+                                .message {
+                                    font-size: 24px;
+                                    font-weight: bold;
+                                    color: #FF0000;  # Red text
+                                }   
+                            </style>
+                        </head>
+                        <body>
+                            <div class="message">You are not in the server</div>
+                        </body>
+                    </html>
+                    """
 
         def run_flask():
             app.run(debug=True, use_reloader=False)
