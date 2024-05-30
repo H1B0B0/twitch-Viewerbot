@@ -11,7 +11,9 @@ dependencies = [
     "customtkinter==5.1.3",
     "pycryptodome==3.19.1",
     "cffi==1.15.1",
-    "rich==13.7"
+    "rich==13.7",
+    "flask==3.0.3",
+    "python-dotenv==1.0.1",
 ]
 
 [project.optional-dependencies]

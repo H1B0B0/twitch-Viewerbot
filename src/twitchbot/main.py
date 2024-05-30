@@ -151,8 +151,8 @@ class ViewerBotGUI(customtkinter.CTk):
         except:
             pass
         self.update_idletasks()
-        app.after(200, app.configure_label)
-
+        self.after(200, self.configure_label)
+        
     def proxies_number(self):
         try:
             total_text = f"Total: {len(self.bot.proxies)}"
@@ -198,8 +198,4 @@ class ViewerBotGUI(customtkinter.CTk):
             self.proxy_imported = False
             messagebox.showwarning(title="WARNING", message="No proxy imported, the proxy list is empty. Proxies gonna be scraped.")
         # close the parameters window
-        self.dialog.destroy()                   
-
-if __name__ == '__main__':
-    app = ViewerBotGUI()
-    app.mainloop()
+        self.dialog.destroy()                 
