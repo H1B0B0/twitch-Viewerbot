@@ -1,9 +1,13 @@
 import os
 import sys
+import shutil
 import requests
+import subprocess
 import webbrowser
 import customtkinter
 import platform
+import tkinter as tk
+from tkinter import messagebox
 from pathlib import Path
 from threading import Thread
 from tkinter import messagebox
@@ -39,6 +43,42 @@ REDIRECT_URI = os.getenv('REDIRECT_URI')
 SERVER_ID = os.getenv('SERVER_ID')
 ROLE_ID = os.getenv('ROLE_ID')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+
+# Auto-update system
+GITHUB_REPO_API = 'https://api.github.com/repos/H1B0B0/twitch-Viewerbot/releases/latest'
+response = requests.get(GITHUB_REPO_API)
+data = response.json()
+
+# Get the current version of the app
+current_version = '2.0.1'
+
+# Check if a new version is available
+if data['tag_name'] > current_version:
+    # Download the new version
+    download_url = data['assets'][1]['browser_download_url']
+    response = requests.get(download_url, stream=True)
+    with open('new_version.exe', 'wb') as out_file:
+        shutil.copyfileobj(response.raw, out_file)
+
+    # If old_version.exe exists, remove it
+    if os.path.exists('old_version.exe'):
+        os.remove('old_version.exe')
+
+    # Replace the current executable with the new one
+    os.rename(sys.argv[0], 'old_version.exe')
+    os.rename('new_version.exe', sys.argv[0])
+
+    # Show a message to the user
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+    messagebox.showinfo("Update", "The application has been updated. It will now restart.")
+    root.destroy()  # Destroy the main window
+
+    # Relaunch the application
+    subprocess.Popen([sys.argv[0]])
+
+    # Close the current application
+    sys.exit()
 
 class ViewerBotGUI(customtkinter.CTk):
     def __init__(self):
@@ -183,21 +223,28 @@ class ViewerBotGUI(customtkinter.CTk):
                         <html>
                             <head>
                                 <style>
-                                    body {
-                                        font-family: Arial, sans-serif;
-                                        background-color: #f0f0f0;
-                                        color: #333;
-                                        padding: 30px;
+                                    body, html {
+                                        margin: 0;
+                                        padding: 0;
+                                        height: 100%;
+                                        width: 100%;
+                                        overflow: hidden;  # Prevents scrollbars from appearing
                                     }
-                                    .message {
-                                        font-size: 24px;
-                                        font-weight: bold;
-                                        color: #008000;  # Green text
+                                    #canvas3d {
+                                        width: 100%;
+                                        height: 100%;
                                     }
                                 </style>
                             </head>
                             <body>
-                                <div class="message">You are logged in</div>
+                                <canvas id="canvas3d"></canvas>
+                                <script type="module">
+                                    import { Application } from 'https://cdn.skypack.dev/@splinetool/runtime';
+
+                                    const canvas = document.getElementById('canvas3d');
+                                    const app = new Application(canvas);
+                                    app.load('https://prod.spline.design/5-w0xw-yuEOQ4-0Q/scene.splinecode');
+                                </script>
                             </body>
                         </html>
                         """

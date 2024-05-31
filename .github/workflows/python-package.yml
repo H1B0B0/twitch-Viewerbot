@@ -142,6 +142,9 @@ jobs:
               - Introduced Premium bot: This new bot can be used exclusively by Patreon users.
               - Bug fixes: We've addressed and resolved several bugs to improve the overall user experience.
               - Launched Free bot: We're excited to announce the availability of a new bot that can be used by all users, regardless of their Patreon subscription status.
+              # New 2.0.1 features
+                - Added auto update feature
+                - Added new logged in message
           draft: false
           prerelease: false
       
