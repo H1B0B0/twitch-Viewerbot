@@ -75,6 +75,13 @@ jobs:
 
       - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
+          SERVER_ID: ${{ secrets.SERVER_ID }}
+          ROLE_ID: ${{ secrets.ROLE_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT Premium" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
@@ -84,7 +91,6 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
-          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env;.env" `
           --hidden-import "os" `
           --hidden-import "requests" `
           --hidden-import "webbrowser" `

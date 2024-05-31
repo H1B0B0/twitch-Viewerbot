@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 import webbrowser
 import customtkinter
@@ -21,8 +22,15 @@ SLIDER_MAX = 10000
 app = Flask(__name__)
 current_path = Path(__file__).resolve().parent
 
-# Load .env file
-load_dotenv()
+# Get the base path (directory of the .exe when compiled, directory of the script otherwise)
+base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+# Try to load .env file from base path
+if not load_dotenv(os.path.join(base_path, '.env')):
+    # If loading .env file from base path failed, try to load it from script directory
+    if not load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')):
+        # If loading .env file from script directory also failed, display an error
+        print("Error: .env file not found")
 
 # Get the credentials from .env
 CLIENT_ID = os.getenv('CLIENT_ID')
