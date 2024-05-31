@@ -27,12 +27,9 @@ This is a Python script for generating Twitch views using proxies. It is impleme
     ```
 2. Once the folder installation is complete, navigate into the folder.
 
-3. Run the file ``install.bat``to install the required dependencies. 
-
 > **Warning**
 > You need Python installed. If you don't have it, you can download it from [here](https://www.python.org/downloads/)
 
-4. Run ``main.bat`` or ``main_just_terminal.bat`` if you prefer a command-line interface and better performance (the terminal version currently uses HTTP scraped proxies).
 
 ## Usage
 
@@ -45,27 +42,27 @@ pip install .
 2. Run the script:
 
 ```shell
-python3 main.py 
+python3 src/twitchbot/free_version.py
+```
+Or for Patreon subscribers, run the premium version:
+```shell
+python3 src/twitchbot/premium_version.py
 ```
 or 
 ```shell
-python3 main_just_terminal.py
-```
-or 
-```shell
-python3 script.py -threads nb_threads -twitchname example_channel  -proxyfile path/to/your/proxylist
+python3 src/twitchbot/free_version.py -threads nb_threads -twitchname example_channel  -proxyfile path/to/your/proxylist
 ```
 or
 ```shell
-py -3 main.py 
+py -3 src/twitchbot/premium_version.py
 ```
 or 
 ```shell
-py -3 main_just_terminal.py
+py -3 src/twitchbot/free_version.py
 ```
 or 
 ```shell
-py -3 script.py -threads nb_threads -twitchname example_channel
+py -3 src/twitchbot/free_version.py -threads nb_threads -twitchname example_channel
 ```
 3. Fill in the following details in the GUI:
 

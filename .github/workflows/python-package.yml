@@ -63,10 +63,20 @@ jobs:
         run: |
           echo "::set-output name=site-packages-path::$(python -c "import site; print(site.getsitepackages()[0].replace('\\\\', '\\\\\\\\'))")"
 
+      - name: create .env file
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "BOT_TOKEN = ${{ secrets.BOT_TOKEN }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "CLIENT_ID = ${{ secrets.CLIENT_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "CLIENT_SECRET = ${{ secrets.CLIENT_SECRET }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "REDIRECT_URI = ${{ secrets.REDIRECT_URI }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "ROLE_ID = ${{ secrets.ROLE_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "SERVER_ID = ${{ secrets.SERVER_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+
       - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT" --clean `
+          pyinstaller --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT Premium" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
@@ -74,7 +84,20 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
-          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\main.py"
+          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\premium_version.py"
+
+      - name: Run PyInstaller for the console version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          pyinstaller --noconfirm --onefile --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT Free" --clean `
+          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
+          --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\free_version.py"
 
       - uses: actions/upload-artifact@v2
         with:
@@ -91,8 +114,11 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # Fix
-            - Problem with the scraped proxies fixed.
+              # Changelog
+              - Added Discord login feature: This new feature allows users to verify their Patreon subscription status.
+              - Introduced Premium bot: This new bot can be used exclusively by Patreon users.
+              - Bug fixes: We've addressed and resolved several bugs to improve the overall user experience.
+              - Launched Free bot: We're excited to announce the availability of a new bot that can be used by all users, regardless of their Patreon subscription status.
           draft: false
           prerelease: false
       
@@ -100,9 +126,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
-          echo "asset_path=dist/Twitch ViewerBOT.exe" >> $GITHUB_ENV
-          echo "asset_name=Twitch ViewerBOT.exe" >> $GITHUB_ENV
+          echo "asset_path=dist/Twitch ViewerBOT Premium.exe" >> $GITHUB_ENV
+          echo "asset_name=Twitch ViewerBOT Premium.exe" >> $GITHUB_ENV
           echo "asset_content_type=application/exe" >> $GITHUB_ENV
+          echo "asset_path2=dist/Twitch ViewerBOT Free.exe" >> $GITHUB_ENV
+          echo "asset_name2=Twitch ViewerBOT Free.exe" >> $GITHUB_ENV
+          echo "asset_content_type2=application/exe" >> $GITHUB_ENV
       
       - name: Upload Release Asset 1
         if: startsWith(github.ref, 'refs/tags/')
@@ -111,8 +140,19 @@ jobs:
           GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/Twitch ViewerBOT.exe
-          asset_name: Twitch ViewerBOT.exe
+          asset_path: dist/Twitch ViewerBOT Premium.exe
+          asset_name: Twitch ViewerBOT Premium.exe
+          asset_content_type: application/exe
+
+      - name: Upload Release Asset 2
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/Twitch ViewerBOT Free.exe
+          asset_name: Twitch ViewerBOT Free.exe
           asset_content_type: application/exe
       
     
