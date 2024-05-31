@@ -50,7 +50,7 @@ response = requests.get(GITHUB_REPO_API)
 data = response.json()
 
 # Get the current version of the app
-current_version = '2.0.1'
+current_version = '2.0.2'
 
 # Check if a new version is available
 if data['tag_name'] > current_version:
@@ -249,11 +249,11 @@ class ViewerBotGUI(customtkinter.CTk):
                         </html>
                         """
                 else:
-                    dialog = customtkinter.CTkInputDialog()
+                    dialog = customtkinter.CTk()
                     dialog.title("Subscribe to the bot")
                     label = customtkinter.CTkLabel(dialog, text="You are in the server, but you are not subscribed.\n Please subscribe to access the bot.\n If you are already subscribed, please contact the owner.\n")
                     label.pack(pady=10, padx=10)
-                    link = customtkinter.CTkButton(dialog, text="Subscribe", command=open_link)
+                    link = customtkinter.CTkButton(dialog, text="Subscribe", command=lambda: open_link(dialog))
                     link.pack(pady=10, padx=10)
                     dialog.mainloop()
                     return """
@@ -279,11 +279,11 @@ class ViewerBotGUI(customtkinter.CTk):
                         </html>
                         """
             else:
-                dialog = customtkinter.CTkInputDialog()
+                dialog = customtkinter.CTk()
                 dialog.title("Join the server")
                 label = customtkinter.CTkLabel(dialog, text="You are not in the server.\n Please join the server to access the bot.\n If you are already in the server, please contact the owner.\n")
                 label.pack(pady=10, padx=10)
-                link = customtkinter.CTkButton(dialog, text="Join", command=open_link_discord)
+                link = customtkinter.CTkButton(dialog, text="Join", command=lambda: open_link_discord(dialog))
                 link.pack(pady=10, padx=10)
                 dialog.mainloop()
                 return """
@@ -315,11 +315,13 @@ class ViewerBotGUI(customtkinter.CTk):
         def open_browser():
             self.browser = webbrowser.open('http://localhost:5000')
 
-        def open_link():
+        def open_link(dialog):
             self.browser = webbrowser.open('https://www.patreon.com/hibo/membership')
+            dialog.destroy()
 
-        def open_link_discord():
+        def open_link_discord(dialog):
             self.browser = webbrowser.open('https://discord.gg/EDQ8ayhjDp')
+            dialog.destroy()
 
         if __name__ == '__main__':
             flask_thread = Thread(target=run_flask)

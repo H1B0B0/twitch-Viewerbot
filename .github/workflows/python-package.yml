@@ -142,9 +142,10 @@ jobs:
             - 🤖 Introduced Premium bot: This new bot can be used exclusively by Patreon users.
             - 🐛 Bug fixes: We've addressed and resolved several bugs to improve the overall user experience.
             - 🚀 Launched Free bot: We're excited to announce the availability of a new bot that can be used by all users, regardless of their Patreon subscription status.
-            # New 2.0.1 features
             - 🔄 Added auto update feature
             - 📝 Added new logged in message
+            # Fix 2.0.2
+            - 🐛 Fixed a bug that caused the bot to crash when the user tried to log in but was not on the server or not subscribed.
             # Patreon and Discord server to use the premium version
             - 💰 [Subscribe here](https://www.patreon.com/hibo/membership)
             - 🎮 [Join the server here](https://discord.gg/2Sqvx25auv)
