@@ -66,12 +66,12 @@ jobs:
       - name: create .env file
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          echo "BOT_TOKEN = ${{ secrets.BOT_TOKEN }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo "CLIENT_ID = ${{ secrets.CLIENT_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo "CLIENT_SECRET = ${{ secrets.CLIENT_SECRET }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo "REDIRECT_URI = ${{ secrets.REDIRECT_URI }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo "ROLE_ID = ${{ secrets.ROLE_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo "SERVER_ID = ${{ secrets.SERVER_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "REDIRECT_URI=${{ secrets.REDIRECT_URI }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "ROLE_ID=${{ secrets.ROLE_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo "SERVER_ID=${{ secrets.SERVER_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
 
       - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')
@@ -89,15 +89,13 @@ jobs:
           --hidden-import "webbrowser" `
           --hidden-import "customtkinter" `
           --hidden-import "platform" `
-          --hidden-import "pathlib.Path" `
-          --hidden-import "threading.Thread" `
+          --hidden-import "pathlib" `
+          --hidden-import "threading" `
           --hidden-import "tkinter.messagebox" `
-          --hidden-import "dotenv.load_dotenv" `
+          --hidden-import "dotenv" `
           --hidden-import "tkinter.filedialog" `
-          --hidden-import "viewer_bot.ViewerBot" `
-          --hidden-import "flask.Flask" `
-          --hidden-import "flask.request" `
-          --hidden-import "flask.redirect" `
+          --hidden-import "viewer_bot" `
+          --hidden-import "flask" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\premium_version.py"
 
       - name: Run PyInstaller for the console version
@@ -111,6 +109,7 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\websocket;websocket/" `
           --hidden-import "ctypes.util" `
           --hidden-import "_cffi_backend" `
           --hidden-import "uuid" `
