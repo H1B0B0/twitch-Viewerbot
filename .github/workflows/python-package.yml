@@ -84,6 +84,20 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --hidden-import "os" `
+          --hidden-import "requests" `
+          --hidden-import "webbrowser" `
+          --hidden-import "customtkinter" `
+          --hidden-import "platform" `
+          --hidden-import "pathlib.Path" `
+          --hidden-import "threading.Thread" `
+          --hidden-import "tkinter.messagebox" `
+          --hidden-import "dotenv.load_dotenv" `
+          --hidden-import "tkinter.filedialog" `
+          --hidden-import "viewer_bot.ViewerBot" `
+          --hidden-import "flask.Flask" `
+          --hidden-import "flask.request" `
+          --hidden-import "flask.redirect" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\premium_version.py"
 
       - name: Run PyInstaller for the console version
@@ -97,6 +111,9 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --hidden-import "ctypes.util" `
+          --hidden-import "_cffi_backend" `
+          --hidden-import "uuid" `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\free_version.py"
 
       - uses: actions/upload-artifact@v2
