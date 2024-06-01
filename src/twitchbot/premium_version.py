@@ -51,10 +51,10 @@ response = requests.get(GITHUB_REPO_API)
 data = response.json()
 
 # Get the current version of the app
-current_version = '2.0.2'
+CURRENT_VERSION = '2.0.3'
 
 # Check if a new version is available
-if data['tag_name'] > current_version:
+if data['tag_name'] > CURRENT_VERSION:
     # Download the new version
     download_url = data['assets'][1]['browser_download_url']
     response = requests.get(download_url, stream=True)
@@ -214,7 +214,7 @@ class ViewerBotGUI(customtkinter.CTk):
                     self.alive_label.grid(column=1, row=11, padx=10, pady=2, sticky="e")
 
                     # Label
-                    self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO", font=font)
+                    self.name_label = customtkinter.CTkLabel(self, text=f"Coded by HIBOBO V{CURRENT_VERSION}", font=font)
                     self.name_label.grid(column=0, columnspan=2, row=12, padx=10, pady=2)
                     
                     # Variables for status and threads
