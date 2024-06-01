@@ -14,6 +14,7 @@ from tkinter import messagebox
 from dotenv import load_dotenv
 from tkinter import filedialog
 from viewer_bot import ViewerBot
+from urllib.parse import urlparse
 from flask import Flask, request, redirect
 
 current_path = Path(__file__).resolve().parent
@@ -107,6 +108,7 @@ class ViewerBotGUI(customtkinter.CTk):
         self.proxies_label = None
         self.threads = []
         self.segemented_button = None
+        self.active_threads_label = None
         
         @app.route('/')
         def index():
@@ -151,8 +153,9 @@ class ViewerBotGUI(customtkinter.CTk):
                 if ROLE_ID in roles:
                     self.label.destroy()
                     self.login_button.destroy()
+                    font = ("Helvetica", 15)
                     # Label for number of threads
-                    nb_threads_label = customtkinter.CTkLabel(self, text="Number of threads:")
+                    nb_threads_label = customtkinter.CTkLabel(self, text="Number of threads:", font=font)
                     nb_threads_label.grid(column=0, row=0, padx=10, pady=10)
                     
                     # Entry for number of threads
@@ -160,7 +163,7 @@ class ViewerBotGUI(customtkinter.CTk):
                     self.nb_threads_entry.grid(column=1, row=0, padx=10, pady=10)
                     
                     # Label for Twitch channel name
-                    channel_name_label = customtkinter.CTkLabel(self, text="Twitch channel name:")
+                    channel_name_label = customtkinter.CTkLabel(self, text="Twitch channel name or url:", font=font)
                     channel_name_label.grid(column=0, row=1, padx=10, pady=10)
                     
                     # Entry for Twitch channel name
@@ -168,12 +171,12 @@ class ViewerBotGUI(customtkinter.CTk):
                     self.channel_name_entry.grid(column=1, row=1, padx=10, pady=10)
 
                     # Label for proxy type
-                    proxy_type = customtkinter.CTkLabel(self, text="Proxy type")
+                    proxy_type = customtkinter.CTkLabel(self, text="Proxy type", font=font)
                     proxy_type.grid(column=0, row=2, columnspan=2, padx=10, pady=0)
 
                     # select proxy type
                     self.segemented_button_var = customtkinter.StringVar(value="http")
-                    self.segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5", "all"], variable=self.segemented_button_var)
+                    self.segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5", "all"], variable=self.segemented_button_var, font=font)
                     self.segemented_button.grid(column=0, row=3, columnspan=2, padx=10, pady=5)
 
                     self.slider = customtkinter.CTkSlider(self, from_=SLIDER_MIN, to=SLIDER_MAX, command=self.slider_event)
@@ -181,40 +184,38 @@ class ViewerBotGUI(customtkinter.CTk):
                     self.slider.grid(column=0, row=5, columnspan=2, padx=10, pady=0)
 
                     # Label for timeout
-                    self.timeout = customtkinter.CTkLabel(self, text=f"timeout: {int(self.slider.get())}")
+                    self.timeout = customtkinter.CTkLabel(self, text=f"timeout: {int(self.slider.get())}", font=font)
                     self.timeout.grid(column=0, row=4, columnspan=2, padx=10, pady=0)
                     
                     # Button to start the bot
-                    start_button = customtkinter.CTkButton(self, text="Start bot")
-                    start_button.grid(column=0, row=6, padx=10, pady=10)
-                    start_button.configure(command=self.start_bot)
+                    start_button = customtkinter.CTkButton(self, text="Start bot", font=font)
+                    start_button.grid(column=0, row=6, columnspan=2, padx=10, pady=10, sticky='ew')
+                    start_button.configure(command=lambda: self.start_bot(start_button))
                     
-                    # Button to stop the bot
-                    stop_button = customtkinter.CTkButton(self, text="Stop", state="normal")
-                    stop_button.grid(column=1, row=6, padx=10, pady=10)
-                    stop_button.configure(command=self.stop_bot)
-                    
-                    self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0")
+                    self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0", font=font)
                     self.nb_requests_label.grid(column=0, row=7, columnspan=2, padx=10, pady=2)
+
+                    self.active_threads_label = customtkinter.CTkLabel(self, text="Active threads: 0", font=font)
+                    self.active_threads_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
                     # Label for status
-                    self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped")
-                    self.status_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
+                    self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped", font=font)
+                    self.status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=2)
 
                     # Label for the proxy states
-                    self.proxies_label = customtkinter.CTkLabel(self, text="proxy states")
-                    self.proxies_label.grid(column=0, columnspan=2, row=9, padx=10, pady=2)
+                    self.proxies_label = customtkinter.CTkLabel(self, text="proxy states", font=font)
+                    self.proxies_label.grid(column=0, columnspan=2, row=10, padx=10, pady=2)
 
                     # Label for the proxy states
-                    self.total_label = customtkinter.CTkLabel(self, text=f"Total:{self.nb_of_proxies}")
-                    self.total_label.grid(column=0, row=10, padx=10, pady=2, sticky="w")
+                    self.total_label = customtkinter.CTkLabel(self, text=f"Total:{self.nb_of_proxies}", font=font)
+                    self.total_label.grid(column=0, row=11, padx=10, pady=2, sticky="w")
 
                     # Label for the proxy states
-                    self.alive_label = customtkinter.CTkLabel(self, text=f"Alive:{self.nb_of_proxies_alive}")
-                    self.alive_label.grid(column=1, row=10, padx=10, pady=2, sticky="e")
+                    self.alive_label = customtkinter.CTkLabel(self, text=f"Alive:{self.nb_of_proxies_alive}", font=font)
+                    self.alive_label.grid(column=1, row=11, padx=10, pady=2, sticky="e")
 
                     # Label
-                    self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO")
-                    self.name_label.grid(column=0, columnspan=2, row=11, padx=10, pady=2)
+                    self.name_label = customtkinter.CTkLabel(self, text="Coded by HIBOBO", font=font)
+                    self.name_label.grid(column=0, columnspan=2, row=12, padx=10, pady=2)
                     
                     # Variables for status and threads
                     self.status = "Stopped"
@@ -323,24 +324,36 @@ class ViewerBotGUI(customtkinter.CTk):
             self.browser = webbrowser.open('https://discord.gg/EDQ8ayhjDp')
             dialog.destroy()
 
-        if __name__ == '__main__':
-            flask_thread = Thread(target=run_flask)
-            flask_thread.daemon = True
-            flask_thread.start()
+        flask_thread = Thread(target=run_flask)
+        flask_thread.daemon = True
+        flask_thread.start()
 
-            self.label = customtkinter.CTkLabel(self, text="Please login to access the bot")
-            self.label.pack(pady=10, padx=10)
-            self.login_button = customtkinter.CTkButton(self, text="Login", command=open_browser)
-            self.login_button.pack(pady=10, padx=10)
+        font = ("Helvetica", 15)
+
+        self.label = customtkinter.CTkLabel(self, text="Please login to access the bot", font=font)
+        self.label.pack(pady=10, padx=10)
+        self.login_button = customtkinter.CTkButton(self, text="Login", command=open_browser, font=font)
+        self.login_button.pack(pady=10, padx=10)
                 
 
     def slider_event(self, value):
         self.timeout.configure(text=f"timeout: {int(self.slider.get())}")
         
-    def start_bot(self):
+    def start_bot(self, button=object()):
         if self.status == "Stopped":
+            button.configure(command=lambda: self.stop_bot(button), text="Stop bot")
             nb_of_threads = self.nb_threads_entry.get()
             self.channel_name = self.channel_name_entry.get()
+            channel_input = self.channel_name  # This should be the input from the user
+            # Parse the input as a URL
+            parsed_url = urlparse(channel_input)
+
+            # If the input is a URL, extract the username from the path
+            if parsed_url.netloc == 'www.twitch.tv':
+                self.channel_name = parsed_url.path.lstrip('/')
+            else:
+                # If the input is not a URL, assume it's a username
+                self.channel_name = channel_input
             self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.proxy_imported, self.slider.get(), type_of_proxy=self.segemented_button_var)
             self.thread = Thread(target=self.bot.main)
             self.after(200, self.configure_label)
@@ -358,8 +371,9 @@ class ViewerBotGUI(customtkinter.CTk):
             # Append thread to list of threads
             self.threads.append(self.thread)
         
-    def stop_bot(self):
+    def stop_bot(self, button=object()):
         if self.status == "Running":
+            button.configure(command=lambda: self.start_bot(button), text="Start bot")
             # Change status and disable/enable buttons
             self.status = "Stopped"
             self.nb_threads_entry.configure(state="normal")
@@ -372,6 +386,7 @@ class ViewerBotGUI(customtkinter.CTk):
 
     def configure_label(self):
         self.nb_requests_label.configure(text=f"Number of requests: {self.bot.nb_requests}")
+        self.active_threads_label.configure(text=f"Active threads: {self.bot.active_threads}")
         try:
             alive_text = f"Alive: {len(self.bot.proxies)}"
             self.alive_label.configure(text=alive_text)
@@ -399,16 +414,17 @@ class ViewerBotGUI(customtkinter.CTk):
             self.after(200, self.proxies_number)
 
     def show_dialog(self):
+        font = ("Helvetica", 15)
         self.proxylist = []
         # create new window for the parameters
         self.dialog = customtkinter.CTkToplevel(self)
         self.dialog.title("Parameters")
         # Button for import proxy list
-        open_file_button = customtkinter.CTkButton(self.dialog, text="import your proxy list")
+        open_file_button = customtkinter.CTkButton(self.dialog, text="import your proxy list", font=font)
         open_file_button.grid(column=1, row=1, padx=10, pady=10)
         open_file_button.configure(command=self.on_open_file) 
 
-        scraped_button = customtkinter.CTkButton(self.dialog, text="scraped automatically proxy")
+        scraped_button = customtkinter.CTkButton(self.dialog, text="scraped automatically proxy", font=font)
         scraped_button.grid(column=1, row=2, padx=10, pady=10)
         scraped_button.configure(command=self.scraped_proxy) 
 

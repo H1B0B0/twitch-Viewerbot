@@ -25,6 +25,7 @@ class ViewerBot:
         self.channel_url = "https://www.twitch.tv/" + channel_name.lower()
         self.proxyreturned1time = False
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
+        self.active_threads = 0
 
     def create_session(self):
         # Create a session for making requests
@@ -97,6 +98,11 @@ class ViewerBot:
             exit()
 
     def open_url(self, proxy_data):
+
+        if self.stop_event:
+            self.active_threads -= 1
+            return
+        self.active_threads += 1
         # Open the stream URL using the given proxy
         headers = {'User-Agent': self.ua.random}
         current_index = self.all_proxies.index(proxy_data)
@@ -127,7 +133,11 @@ class ViewerBot:
             print(e)
             pass
         finally:
+            if self.stop_event:
+                self.active_threads -= 1
+                return
             self.thread_semaphore.release()  # Release the semaphore
+            self.active_threads -= 1
 
     def stop(self):
         # Stop the ViewerBot by setting the stop event
