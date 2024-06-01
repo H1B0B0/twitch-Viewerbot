@@ -15,6 +15,10 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 - requests
 - fake_useragent
 - tkinter
+  
+## Patreon and Discord server to use the premium version
+- 💰 [Subscribe here](https://www.patreon.com/hibo/membership)
+- 🎮 [Join the server here](https://discord.gg/2Sqvx25auv)
 
 ## Download the folder
 
