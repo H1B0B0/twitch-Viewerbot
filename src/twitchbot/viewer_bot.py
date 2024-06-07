@@ -1,5 +1,6 @@
 import os
 import av
+import re
 import sys
 import time
 import random
@@ -191,10 +192,28 @@ class ViewerBot:
                     transcript = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file
-                    )
+                )
 
                 print(transcript)
+                transcription_text = transcript.text  # Access the transcription text using dot notation
                 os.remove(audio_file_path)
+
+                chat = [
+                    {"role": "system", "content": "You are a viewer on a Twitch Stream."},
+                    {"role": "user", "content": "This is a transcription from a Counter-Strike stream. Please give questions or answers like you are a viewer. Please reply in the language of the stream. Please generate more sentences to continue the conversation. And if you aren't inspired, you can generate just emoji reaction I need some reaction in the chat."},
+                    {"role": "user", "content": transcription_text}
+                ]
+
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=chat
+                )
+
+                print(response)
+    
+                response_text = response.choices[0].message.content
+                # Split the response text into sentences
+                sentences = re.split(r'[.!?]\s*', response_text)
 
                 # Start a new MP3 file for the next chunk
                 output_container = av.open(output_filename, 'w')
