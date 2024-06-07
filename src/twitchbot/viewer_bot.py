@@ -1,14 +1,14 @@
 import os
+import av
 import sys
 import time
-import wave
 import random
-import openai
-import pyaudio
 import datetime
 import requests
 from sys import exit
+from pathlib import Path
 from dotenv import load_dotenv
+from openai import OpenAI
 from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
@@ -159,72 +159,54 @@ class ViewerBot:
         self.stop_event = True
 
     def audio_to_text(self, audio_stream_url, output_filename):
-        # Open the stream as a binary file
-        stream = requests.get(audio_stream_url, stream=True)
+        # Open the HLS stream
+        input_container = av.open(audio_stream_url)
+        input_stream = input_container.streams.get(audio=0)[0]
 
-        # Create an audio object
-        p = pyaudio.PyAudio()
-
-        # Open a PyAudio stream
-        audio_stream = p.open(format=pyaudio.paInt16,
-                            channels=1,
-                            rate=44100,
-                            output=True)
-
-        # Open a wave file
-        wf = wave.open(output_filename, 'wb')
-        wf.setnchannels(1)
-        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-        wf.setframerate(44100)
+        # Open an MP3 file
+        output_filename = output_filename.replace('.wav', '.mp3')
+        output_container = av.open(output_filename, 'w')
+        output_stream = output_container.add_stream('mp3')
 
         # Read and play the stream
         start_time = time.time()
         chunk_count = 0
-        for data in stream.iter_content(chunk_size=1024):
-            if data:
-                audio_stream.write(data)
-                wf.writeframes(data)
+        for frame in input_container.decode(input_stream):
+            # Convert the audio frame to MP3
+            frame.pts = None
+            for packet in output_stream.encode(frame):
+                output_container.mux(packet)
 
-            # Every 10 seconds, save the current chunk to a separate file and transcribe it
-            if time.time() - start_time > 10:
-                # Close the current wave file
-                wf.close()
+            # Every 60 seconds, save the current chunk to a separate file and transcribe it
+            if time.time() - start_time > 60:
+                # Close the current MP3 file
+                for packet in output_stream.encode(None):
+                    output_container.mux(packet)
+                output_container.close()
 
+                audio_file_path = Path.cwd() / "output.mp3"
+                client = OpenAI(api_key=OPENAI_API_KEY)
                 # Transcribe the audio file using OpenAI's API
-                headers = {
-                    "Authorization": f"Bearer {OPENAI_API_KEY}",
-                    "Content-Type": "multipart/form-data"
-                }
-                data = {
-                    "file": open(output_filename, "rb"),
-                    "model": "whisper-1"
-                }
-                response = requests.post("https://api.openai.com/v1/audio/transcriptions", headers=headers, files=data)
+                with open(audio_file_path, 'rb') as audio_file:
+                    transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file
+                    )
 
-                if response.status_code == 200:
-                    print(response.json()['choices'][0]['text'])
-                else:
-                    print(f"Error: {response.status_code}")
+                print(transcript)
 
-                # Clear the file
-                open(output_filename, 'w').close()
-            # Start a new wave file for the next chunk
+                # Start a new MP3 file for the next chunk
                 chunk_count += 1
-                output_filename = f"output_{chunk_count}.wav"
-                wf = wave.open(output_filename, 'wb')
-                wf.setnchannels(1)
-                wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                wf.setframerate(44100)
+                output_filename = f"output_{chunk_count}.mp3"
+                output_container = av.open(output_filename, 'w')
+                output_stream = output_container.add_stream('mp3')
 
                 start_time = time.time()
 
-        # Stop the stream
-        audio_stream.stop_stream()
-        audio_stream.close()
-
-        # Terminate the PyAudio object
-        p.terminate()
-
+        # Close the MP3 file
+        for packet in output_stream.encode(None):
+            output_container.mux(packet)
+        output_container.close()
 
     def main(self):
 
