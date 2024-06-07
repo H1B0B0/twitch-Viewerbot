@@ -184,7 +184,7 @@ class ViewerBot:
                     output_container.mux(packet)
                 output_container.close()
 
-                audio_file_path = Path.cwd() / "output.mp3"
+                audio_file_path = Path.cwd() / output_filename
                 client = OpenAI(api_key=OPENAI_API_KEY)
                 # Transcribe the audio file using OpenAI's API
                 with open(audio_file_path, 'rb') as audio_file:
@@ -194,10 +194,9 @@ class ViewerBot:
                     )
 
                 print(transcript)
+                os.remove(audio_file_path)
 
                 # Start a new MP3 file for the next chunk
-                chunk_count += 1
-                output_filename = f"output_{chunk_count}.mp3"
                 output_container = av.open(output_filename, 'w')
                 output_stream = output_container.add_stream('mp3')
 
@@ -207,7 +206,7 @@ class ViewerBot:
         for packet in output_stream.encode(None):
             output_container.mux(packet)
         output_container.close()
-
+        
     def main(self):
 
         self.proxies = self.get_proxies()
