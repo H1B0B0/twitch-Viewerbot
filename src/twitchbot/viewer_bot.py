@@ -1,12 +1,28 @@
+import os
+import sys
 import time
+import wave
 import random
+import openai
+import pyaudio
 import datetime
 import requests
 from sys import exit
+from dotenv import load_dotenv
 from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
+
+base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+if not load_dotenv(os.path.join(base_path, 'twitchbot', '.env')):
+    # If loading .env file from base path failed, try to load it from script directory
+    if not load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')):
+        # If loading .env file from script directory also failed, display an error
+        print("Error: .env file not found")
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class ViewerBot:
     def __init__(self, nb_of_threads, channel_name, proxylist, proxy_imported, timeout, stop=False, type_of_proxy="http"):
@@ -80,7 +96,6 @@ class ViewerBot:
         elif self.proxyreturned1time == False:
             self.proxyreturned1time = True
             return self.proxylist
-        
 
     def get_url(self):
         # Retrieve the URL for the channel's stream
@@ -143,11 +158,84 @@ class ViewerBot:
         # Stop the ViewerBot by setting the stop event
         self.stop_event = True
 
+    def audio_to_text(self, audio_stream_url, output_filename):
+        # Open the stream as a binary file
+        stream = requests.get(audio_stream_url, stream=True)
+
+        # Create an audio object
+        p = pyaudio.PyAudio()
+
+        # Open a PyAudio stream
+        audio_stream = p.open(format=pyaudio.paInt16,
+                            channels=1,
+                            rate=44100,
+                            output=True)
+
+        # Open a wave file
+        wf = wave.open(output_filename, 'wb')
+        wf.setnchannels(1)
+        wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+        wf.setframerate(44100)
+
+        # Read and play the stream
+        start_time = time.time()
+        chunk_count = 0
+        for data in stream.iter_content(chunk_size=1024):
+            if data:
+                audio_stream.write(data)
+                wf.writeframes(data)
+
+            # Every 10 seconds, save the current chunk to a separate file and transcribe it
+            if time.time() - start_time > 10:
+                # Close the current wave file
+                wf.close()
+
+                # Transcribe the audio file using OpenAI's API
+                headers = {
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "multipart/form-data"
+                }
+                data = {
+                    "file": open(output_filename, "rb"),
+                    "model": "whisper-1"
+                }
+                response = requests.post("https://api.openai.com/v1/audio/transcriptions", headers=headers, files=data)
+
+                if response.status_code == 200:
+                    print(response.json()['choices'][0]['text'])
+                else:
+                    print(f"Error: {response.status_code}")
+
+                # Clear the file
+                open(output_filename, 'w').close()
+            # Start a new wave file for the next chunk
+                chunk_count += 1
+                output_filename = f"output_{chunk_count}.wav"
+                wf = wave.open(output_filename, 'wb')
+                wf.setnchannels(1)
+                wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                wf.setframerate(44100)
+
+                start_time = time.time()
+
+        # Stop the stream
+        audio_stream.stop_stream()
+        audio_stream.close()
+
+        # Terminate the PyAudio object
+        p.terminate()
+
+
     def main(self):
 
         self.proxies = self.get_proxies()
         start = datetime.datetime.now()
         self.create_session()
+        streams = self.session.streams(self.channel_url)
+        audio_stream = streams['audio_only']
+        print(audio_stream.url)
+        thread = Thread(target=self.audio_to_text, args=(audio_stream.url, "output.wav"))
+        thread.start()
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 

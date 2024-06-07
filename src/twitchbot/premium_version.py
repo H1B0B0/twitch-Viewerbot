@@ -25,7 +25,6 @@ SLIDER_MIN = 1000
 SLIDER_MAX = 10000
 
 app = Flask(__name__)
-current_path = Path(__file__).resolve().parent
 
 # Get the base path (directory of the .exe when compiled, directory of the script otherwise)
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
