@@ -130,3 +130,5 @@ dmypy.json
 .pyre/
 test/test_main.py
 output.mp3
+
+src/twitchbot/tokens.txt

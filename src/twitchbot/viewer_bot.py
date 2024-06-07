@@ -4,6 +4,7 @@ import re
 import sys
 import time
 import random
+import asyncio
 import datetime
 import requests
 from sys import exit
@@ -14,6 +15,7 @@ from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
+from message import TwitchBotManager
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -159,7 +161,7 @@ class ViewerBot:
         # Stop the ViewerBot by setting the stop event
         self.stop_event = True
 
-    def audio_to_text(self, audio_stream_url, output_filename):
+    async def audio_to_text(self, audio_stream_url, output_filename):
         # Open the HLS stream
         input_container = av.open(audio_stream_url)
         input_stream = input_container.streams.get(audio=0)[0]
@@ -171,7 +173,6 @@ class ViewerBot:
 
         # Read and play the stream
         start_time = time.time()
-        chunk_count = 0
         for frame in input_container.decode(input_stream):
             # Convert the audio frame to MP3
             frame.pts = None
@@ -200,7 +201,7 @@ class ViewerBot:
 
                 chat = [
                     {"role": "system", "content": "You are a viewer on a Twitch Stream."},
-                    {"role": "user", "content": "This is a transcription from a Counter-Strike stream. Please give questions or answers like you are a viewer. Please reply in the language of the stream. Please generate more sentences to continue the conversation. And if you aren't inspired, you can generate just emoji reaction I need some reaction in the chat."},
+                    {"role": "user", "content": "This is a transcription from a Counter-Strike stream. Please generate at least 30 sentences to continue the conversation. Give questions or answers like you are a viewer. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Don't place emoji on all sentences."},
                     {"role": "user", "content": transcription_text}
                 ]
 
@@ -215,6 +216,12 @@ class ViewerBot:
                 # Split the response text into sentences
                 sentences = re.split(r'[.!?]\s*', response_text)
 
+                for sentence in sentences:
+                    bot = random.choice(self.bot_manager.bots)
+                    print(sentence)
+                    await bot.send_message(sentence)
+                    await asyncio.sleep(random.randint(0.3, 1))
+
                 # Start a new MP3 file for the next chunk
                 output_container = av.open(output_filename, 'w')
                 output_stream = output_container.add_stream('mp3')
@@ -227,15 +234,21 @@ class ViewerBot:
         output_container.close()
         
     def main(self):
-
         self.proxies = self.get_proxies()
         start = datetime.datetime.now()
         self.create_session()
         streams = self.session.streams(self.channel_url)
         audio_stream = streams['audio_only']
-        print(audio_stream.url)
-        thread = Thread(target=self.audio_to_text, args=(audio_stream.url, "output.wav"))
-        thread.start()
+        self.bot_manager = TwitchBotManager('tokens.txt')
+
+        # Create a new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Run the coroutine in the event loop
+        loop.run_until_complete(self.bot_manager.run_bots())
+
+        loop.run_in_executor(None, asyncio.run, self.audio_to_text(audio_stream.url, "output.wav"))
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
