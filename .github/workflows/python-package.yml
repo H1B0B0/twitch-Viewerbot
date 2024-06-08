@@ -72,7 +72,9 @@ jobs:
           echo "REDIRECT_URI=${{ secrets.REDIRECT_URI }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
           echo "ROLE_ID=${{ secrets.ROLE_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
           echo "SERVER_ID=${{ secrets.SERVER_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
+          echo ${{ secrets.ACCOUNTS }} >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\valid_tokens.txt
+      
       - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -91,6 +93,16 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\websocket;websocket/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\requests;requests/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\rich;rich/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\flask;flask/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\python_dotenv;python_dotenv/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\pyav;pyav/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\openai;openai/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\argparse;argparse/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\python_decouple;python_decouple/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\emoji;emoji/" `
           --hidden-import "os" `
           --hidden-import "requests" `
           --hidden-import "webbrowser" `
@@ -117,6 +129,7 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\websocket;websocket/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\rich;rich/" `
           --hidden-import "ctypes.util" `
           --hidden-import "_cffi_backend" `
           --hidden-import "uuid" `
@@ -144,11 +157,10 @@ jobs:
             - 🚀 Launched Free bot: We're excited to announce the availability of a new bot that can be used by all users, regardless of their Patreon subscription status.
             - 🔄 Added auto update feature
             - 📝 Added new logged in message
-            # Fix 2.0.3
-            - 🐛 Fixed the stopping function to terminate active threads
-            # New features
             - 🆕 Added a new feature to view active threads
             - 🆕 Implemented a new policy for a more beautiful UI
+            # New features 2.1
+            - 🤖 Introduced messages sending in the chat: The bot now sends messages in the chat based on the game being played and what the streamer is saying. These messages are personalized using AI. Only available for premium users.
             # Patreon and Discord server to use the premium version
             - 💰 [Subscribe here](https://www.patreon.com/hibo/membership)
             - 🎮 [Join the server here](https://discord.gg/2Sqvx25auv)

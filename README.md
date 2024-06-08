@@ -20,6 +20,30 @@ This is a Python script for generating Twitch views using proxies. It is impleme
 - 💰 [Subscribe here](https://www.patreon.com/hibo/membership)
 - 🎮 [Join the server here](https://discord.gg/2Sqvx25auv)
 
+## Premium vs Free Version
+
+There are two versions of the Twitch Viewer Bot: the Free version and the Premium version.
+
+### Free Version
+
+The Free version of the bot includes the following features:
+
+- Basic Twitch viewing bot functionality
+- Ability to view active threads
+
+### Premium Version
+
+The Premium version of the bot includes all the features of the Free version, along with the following additional features:
+
+- Discord login: This feature allows users to verify their Patreon subscription status.
+- AI-Powered Chat Messages: The bot sends messages in the chat based on the game being played and the streamer's comments. These messages are personalized using AI.
+- Auto Update Feature: This feature ensures that your bot is always up-to-date with the latest features and improvements.
+- Enhanced User Interface: The Premium version features a more aesthetically pleasing and user-friendly interface.
+- Optimized Performance: The Premium version is more optimized, providing a smoother and more efficient user experience.
+- Dedicated Support: Premium users have access to fast and dedicated support to help resolve any issues.
+
+To use the Premium version of the bot, you need to be a Patreon subscriber. You can subscribe [here](https://www.patreon.com/hibo/membership) and join the Discord server [here](https://discord.gg/2Sqvx25auv).
+
 ## Download the folder
 
 > **Warning**

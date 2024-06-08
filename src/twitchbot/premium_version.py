@@ -24,6 +24,9 @@ THEME = current_path/"interface_assets"/"purple.json"
 SLIDER_MIN = 1000
 SLIDER_MAX = 10000
 
+MESSAGE_MIN = 1
+MESSAGE_MAX = 60
+
 app = Flask(__name__)
 
 # Get the base path (directory of the .exe when compiled, directory of the script otherwise)
@@ -50,7 +53,7 @@ response = requests.get(GITHUB_REPO_API)
 data = response.json()
 
 # Get the current version of the app
-CURRENT_VERSION = '2.0.3'
+CURRENT_VERSION = '2.1.0'
 
 # Check if a new version is available
 if data['tag_name'] > CURRENT_VERSION:
@@ -108,6 +111,12 @@ class ViewerBotGUI(customtkinter.CTk):
         self.threads = []
         self.segemented_button = None
         self.active_threads_label = None
+        self.chat_messages_var = None
+        self.chat_messages_checkbox = None
+        self.game_name_entry = None
+        self.number_of_messages = None
+        self.number_of_messages_slider = None
+        self.nb_message = None
         
         @app.route('/')
         def index():
@@ -169,52 +178,72 @@ class ViewerBotGUI(customtkinter.CTk):
                     self.channel_name_entry = customtkinter.CTkEntry(self)
                     self.channel_name_entry.grid(column=1, row=1, padx=10, pady=10)
 
+                    # Label for game name
+                    game_name_label = customtkinter.CTkLabel(self, text="Game name:", font=font)
+                    game_name_label.grid(column=0, row=2, padx=10, pady=10)
+
+                    # Entry for game name
+                    self.game_name_entry = customtkinter.CTkEntry(self)
+                    self.game_name_entry.grid(column=1, row=2, padx=10, pady=10)
+                    
+                    self.number_of_messages_slider = customtkinter.CTkSlider(self, from_=MESSAGE_MIN, to=MESSAGE_MAX, command=self.message_slider)
+                    self.number_of_messages_slider.grid(column=0, row=4, columnspan=2, padx=10, pady=0)
+
+                    # Label for message
+                    self.nb_message = customtkinter.CTkLabel(self, text=f"Messages in the chat per minute: {int(self.number_of_messages_slider.get())}", font=font)
+                    self.nb_message.grid(column=0, row=3, columnspan=2, padx=10, pady=0)
+
+                    # Checkbox for enabling or disabling chat messages
+                    self.chat_messages_var = customtkinter.BooleanVar(value=False)
+                    self.chat_messages_checkbox = customtkinter.CTkCheckBox(self, text="Enable chat messages", variable=self.chat_messages_var, font=font)
+                    self.chat_messages_checkbox.grid(column=0, row=5, columnspan=2, padx=10, pady=10)
+
                     # Label for proxy type
                     proxy_type = customtkinter.CTkLabel(self, text="Proxy type", font=font)
-                    proxy_type.grid(column=0, row=2, columnspan=2, padx=10, pady=0)
+                    proxy_type.grid(column=0, row=6, columnspan=2, padx=10, pady=0)
 
                     # select proxy type
                     self.segemented_button_var = customtkinter.StringVar(value="http")
                     self.segemented_button = customtkinter.CTkSegmentedButton(self, values=["http", "socks4", "socks5", "all"], variable=self.segemented_button_var, font=font)
-                    self.segemented_button.grid(column=0, row=3, columnspan=2, padx=10, pady=5)
+                    self.segemented_button.grid(column=0, row=7, columnspan=2, padx=10, pady=5)
 
                     self.slider = customtkinter.CTkSlider(self, from_=SLIDER_MIN, to=SLIDER_MAX, command=self.slider_event)
                     self.slider.set(SLIDER_MAX)
-                    self.slider.grid(column=0, row=5, columnspan=2, padx=10, pady=0)
+                    self.slider.grid(column=0, row=9, columnspan=2, padx=10, pady=0)
 
                     # Label for timeout
                     self.timeout = customtkinter.CTkLabel(self, text=f"timeout: {int(self.slider.get())}", font=font)
-                    self.timeout.grid(column=0, row=4, columnspan=2, padx=10, pady=0)
+                    self.timeout.grid(column=0, row=8, columnspan=2, padx=10, pady=0)
                     
                     # Button to start the bot
                     start_button = customtkinter.CTkButton(self, text="Start bot", font=font)
-                    start_button.grid(column=0, row=6, columnspan=2, padx=10, pady=10, sticky='ew')
+                    start_button.grid(column=0, row=10, columnspan=2, padx=10, pady=10, sticky='ew')
                     start_button.configure(command=lambda: self.start_bot(start_button))
                     
                     self.nb_requests_label = customtkinter.CTkLabel(self, text="Number of requests: 0", font=font)
-                    self.nb_requests_label.grid(column=0, row=7, columnspan=2, padx=10, pady=2)
+                    self.nb_requests_label.grid(column=0, row=11, columnspan=2, padx=10, pady=2)
 
                     self.active_threads_label = customtkinter.CTkLabel(self, text="Active threads: 0", font=font)
-                    self.active_threads_label.grid(column=0, row=8, columnspan=2, padx=10, pady=2)
+                    self.active_threads_label.grid(column=0, row=12, columnspan=2, padx=10, pady=2)
                     # Label for status
                     self.status_label = customtkinter.CTkLabel(self, text="Status: Stopped", font=font)
-                    self.status_label.grid(column=0, row=9, columnspan=2, padx=10, pady=2)
+                    self.status_label.grid(column=0, row=13, columnspan=2, padx=10, pady=2)
 
                     # Label for the proxy states
                     self.proxies_label = customtkinter.CTkLabel(self, text="proxy states", font=font)
-                    self.proxies_label.grid(column=0, columnspan=2, row=10, padx=10, pady=2)
+                    self.proxies_label.grid(column=0, columnspan=2, row=14, padx=10, pady=2)
 
                     # Label for the proxy states
                     self.total_label = customtkinter.CTkLabel(self, text=f"Total:{self.nb_of_proxies}", font=font)
-                    self.total_label.grid(column=0, row=11, padx=10, pady=2, sticky="w")
+                    self.total_label.grid(column=0, row=15, padx=10, pady=2, sticky="w")
 
                     # Label for the proxy states
                     self.alive_label = customtkinter.CTkLabel(self, text=f"Alive:{self.nb_of_proxies_alive}", font=font)
-                    self.alive_label.grid(column=1, row=11, padx=10, pady=2, sticky="e")
+                    self.alive_label.grid(column=1, row=15, padx=10, pady=2, sticky="e")
 
                     # Label
                     self.name_label = customtkinter.CTkLabel(self, text=f"Coded by HIBOBO V{CURRENT_VERSION}", font=font)
-                    self.name_label.grid(column=0, columnspan=2, row=12, padx=10, pady=2)
+                    self.name_label.grid(column=0, columnspan=2, row=16, padx=10, pady=2)
                     
                     # Variables for status and threads
                     self.status = "Stopped"
@@ -337,6 +366,9 @@ class ViewerBotGUI(customtkinter.CTk):
 
     def slider_event(self, value):
         self.timeout.configure(text=f"timeout: {int(self.slider.get())}")
+
+    def message_slider(self, value):
+        self.nb_message.configure(text=f"Messages in the chat per minute: {int(value)}")
         
     def start_bot(self, button=object()):
         if self.status == "Stopped":
@@ -353,7 +385,7 @@ class ViewerBotGUI(customtkinter.CTk):
             else:
                 # If the input is not a URL, assume it's a username
                 self.channel_name = channel_input
-            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.proxy_imported, self.slider.get(), type_of_proxy=self.segemented_button_var)
+            self.bot = ViewerBot(nb_of_threads, self.channel_name, self.proxylist, self.proxy_imported, self.slider.get(), type_of_proxy=self.segemented_button_var, chat_messages=self.chat_messages_var.get(), game_name=self.game_name_entry.get(), number_of_messages=self.number_of_messages_slider.get())
             self.thread = Thread(target=self.bot.main)
             self.after(200, self.configure_label)
             self.after(200, self.proxies_number)
@@ -365,6 +397,9 @@ class ViewerBotGUI(customtkinter.CTk):
             self.channel_name_entry.configure(state="disabled")
             self.segemented_button.configure(state="disabled")
             self.slider.configure(state="disabled")
+            self.game_name_entry.configure(state="disabled")
+            self.chat_messages_checkbox.configure(state="disabled")
+            self.number_of_messages_slider.configure(state="disabled")
             # Update status label and buttons
             self.status_label.configure(text=f"Status: {self.status}")
             # Append thread to list of threads
@@ -381,6 +416,9 @@ class ViewerBotGUI(customtkinter.CTk):
             self.slider.configure(state="normal")
             # Update status label and buttons
             self.status_label.configure(text=f"Status: {self.status}")
+            self.game_name_entry.configure(state="normal")
+            self.chat_messages_checkbox.configure(state="normal")
+            self.number_of_messages_slider.configure(state="normal")
             self.bot.stop()
 
     def configure_label(self):

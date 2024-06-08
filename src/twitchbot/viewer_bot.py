@@ -4,10 +4,10 @@ import re
 import sys
 import time
 import random
-import asyncio
 import datetime
 import requests
 import logging
+import twitch_chat_irc
 from sys import exit
 from pathlib import Path
 from dotenv import load_dotenv
@@ -16,7 +16,6 @@ from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
-from message import TwitchBotManager
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,7 +28,7 @@ if not load_dotenv(os.path.join(base_path, 'twitchbot', '.env')):
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class ViewerBot:
-    def __init__(self, nb_of_threads, channel_name, proxylist, proxy_imported, timeout, stop=False, type_of_proxy="http"):
+    def __init__(self, nb_of_threads, channel_name, proxylist, proxy_imported, timeout, stop=False, type_of_proxy="http", chat_messages=False, game_name="", number_of_messages=30):
         self.nb_of_threads = nb_of_threads
         self.nb_requests = 0
         self.stop_event = stop
@@ -48,6 +47,9 @@ class ViewerBot:
         self.proxyreturned1time = False
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
         self.active_threads = 0
+        self.chat_messages = chat_messages
+        self.game_name = game_name
+        self.number_of_messages = number_of_messages
 
     def create_session(self):
         # Create a session for making requests
@@ -177,6 +179,8 @@ class ViewerBot:
         # Read and play the stream
         start_time = time.time()
         for frame in input_container.decode(input_stream):
+            if self.stop_event:
+                break
             # Convert the audio frame to MP3
             frame.pts = None
             for packet in output_stream.encode(frame):
@@ -198,13 +202,12 @@ class ViewerBot:
                     file=audio_file
                 )
 
-                print(transcript)
-                transcription_text = transcript.text  # Access the transcription text using dot notation
+                transcription_text = transcript.text
                 os.remove(audio_file_path)
 
                 chat = [
                     {"role": "system", "content": "You are a viewer on a Twitch Stream."},
-                    {"role": "user", "content": "This is a transcription from a Counter-Strike stream. Please generate at least 30 sentences to continue the conversation. Give questions or answers like you are a viewer. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Don't place emoji on all sentences."},
+                    {"role": "user", "content": f"This is a transcription from a {self.game_name} stream. Please generate at least {self.number_of_messages} sentences to continue the conversation. Give questions or answers like you are a viewer. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Don't place emoji on all sentences."},
                     {"role": "user", "content": transcription_text}
                 ]
 
@@ -214,25 +217,24 @@ class ViewerBot:
                 )
 
                 response_text = response.choices[0].message.content
-                print(response_text)
                 # Split the response text into sentences
                 sentences = re.findall(r'[^.!?]*[.!?]', response_text)
-                print(sentences)
 
                 # Iterate over the sentences
                 for sentence in sentences:
-                    if sentence.strip():  # Check if the sentence is not empty or whitespace
+                    sentence = sentence.replace('\n', '')
+                    if sentence.strip():
+                        selected_token = random.choice(self.tokens)
+                        connection = twitch_chat_irc.TwitchChatIRC(username=selected_token['username'], password="oauth:" + selected_token['token'])
+                        logging.info(f"Sending message: {sentence} with user: {selected_token['username']}")
                         try:
-                            # Choose a random bot
-                            bot = random.choice(self.bot_manager.bots)
-                            logging.info(f"Selected bot: {bot}")
-                            logging.info(f"Sending message: {sentence}")
-                            loop = asyncio.get_event_loop()
-                            loop.run_until_complete(self.bot_manager.run_bot(sentence, bot))
+                            connection.send(self.channel_name, sentence)
                             logging.info(f"Message sent: {sentence}")
-                            time.sleep(random.randint(1, 2))
+                            time.sleep(random.randint(0, 2))
+                            connection.close_connection()
                         except Exception as e:
-                            logging.error(f"Failed to send message with bot {bot.name}: {e}")
+                            logging.error(f"Failed to send message {e}")
+                            connection.close_connection()
                     else:
                         logging.error(f"Message is empty or whitespace: {sentence}")
 
@@ -246,28 +248,7 @@ class ViewerBot:
         for packet in output_stream.encode(None):
             output_container.mux(packet)
         output_container.close()
-
-    def start_bot_manager(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        # Wrap the coroutine in a Task and run it
-        task = loop.create_task(self.bot_manager.initialize_bots())
-        loop.run_until_complete(task)
-
-        try:
-            # Run the event loop forever
-            loop.run_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            # Cancel all tasks running on the event loop
-            for task in asyncio.Task.all_tasks(loop):
-                task.cancel()
-            # Gather all tasks to give them the opportunity to cancel
-            loop.run_until_complete(asyncio.gather(*asyncio.Task.all_tasks(loop), return_exceptions=True))
-            loop.close()
-        
+            
     def main(self):
         self.proxies = self.get_proxies()
         start = datetime.datetime.now()
@@ -275,18 +256,15 @@ class ViewerBot:
         streams = self.session.streams(self.channel_url)
         audio_stream = streams['audio_only']
 
-        try:
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__))) + '/valid_tokens.txt', 'r') as file:
-                self.tokens = [line.strip() for line in file.readlines()]
-        except :
-            with open(base_path + '/valid_tokens.txt', 'r') as file:
-                self.tokens = [line.strip() for line in file.readlines()]
-    
-        self.bot_manager = TwitchBotManager(self.tokens, self.channel_name)
-        self.managed_bot = Thread(target=self.start_bot_manager)
-        self.managed_bot.start()
+        if self.chat_messages:
+            try:
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__))) + '/valid_tokens.txt', 'r') as file:
+                    self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
+            except:
+                with open(base_path + '/valid_tokens.txt', 'r') as file:
+                    self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
 
-        Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.wav')).start()
+            Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.wav')).start()
 
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
