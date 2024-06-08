@@ -73,7 +73,7 @@ jobs:
           echo "ROLE_ID=${{ secrets.ROLE_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
           echo "SERVER_ID=${{ secrets.SERVER_ID }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\.env
-          echo ${{ secrets.ACCOUNTS }} >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\valid_tokens.txt
+          echo "${{ secrets.ACCOUNTS }}" >> D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\valid_tokens.txt
       
       - name: Run PyInstaller for the first program
         if: startsWith(github.ref, 'refs/tags/')

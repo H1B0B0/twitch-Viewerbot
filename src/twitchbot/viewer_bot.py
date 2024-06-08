@@ -7,7 +7,6 @@ import random
 import datetime
 import requests
 import logging
-import twitch_chat_irc
 from sys import exit
 from pathlib import Path
 from dotenv import load_dotenv
@@ -16,6 +15,7 @@ from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
+from twitch_chat_irc import TwitchChatIRC
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -225,7 +225,7 @@ class ViewerBot:
                     sentence = sentence.replace('\n', '')
                     if sentence.strip():
                         selected_token = random.choice(self.tokens)
-                        connection = twitch_chat_irc.TwitchChatIRC(username=selected_token['username'], password="oauth:" + selected_token['token'])
+                        connection = TwitchChatIRC(username=selected_token['username'], password="oauth:" + selected_token['token'])
                         logging.info(f"Sending message: {sentence} with user: {selected_token['username']}")
                         try:
                             connection.send(self.channel_name, sentence)
