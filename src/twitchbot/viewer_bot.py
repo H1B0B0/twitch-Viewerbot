@@ -228,7 +228,7 @@ class ViewerBot:
                             bot = random.choice(self.bot_manager.bots)
                             logging.info(f"Selected bot: {bot}")
                             logging.info(f"Sending message: {sentence}")
-                            await bot.start_and_send_message(sentence)
+                            self.bot_manager.run_bot(sentence, bot)
                             logging.info(f"Message sent: {sentence}")
                             await asyncio.sleep(random.randint(0.3, 1))
                         except Exception as e:

@@ -37,11 +37,11 @@ class TwitchBotManager:
         self.account_list = account_list
         self.channel_name = channel_name
 
-    def initialize_bots(self):
+    async def initialize_bots(self):
         for account in self.account_list:
             oauth_token = account.strip()
             logging.info(f"Creating bot for {oauth_token}")
-            if self.is_token_valid(oauth_token):
+            if await self.is_token_valid(oauth_token):
                 self.bots.append(Bot(name=oauth_token, irc_token=f'oauth:{oauth_token}', channel=self.channel_name, token=oauth_token))
             else:
                 logging.error(f"Invalid token for account: {oauth_token}")
