@@ -95,13 +95,11 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\websocket;websocket/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\requests;requests/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\rich;rich/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\flask;flask/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\python_dotenv;python_dotenv/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\pyav;pyav/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\dotenv;dotenv/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\av;av/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\openai;openai/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\argparse;argparse/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\python_decouple;python_decouple/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\decouple;decouple/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\emoji;emoji/" `
           --hidden-import "os" `
           --hidden-import "requests" `
@@ -115,6 +113,7 @@ jobs:
           --hidden-import "tkinter.filedialog" `
           --hidden-import "viewer_bot" `
           --hidden-import "flask" `
+          --exclude-module pydantic `
           "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\premium_version.py"
 
       - name: Run PyInstaller for the console version
