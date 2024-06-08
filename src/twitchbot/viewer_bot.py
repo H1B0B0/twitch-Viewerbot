@@ -221,14 +221,13 @@ class ViewerBot:
 
                 # Iterate over the sentences
                 for sentence in sentences:
-                    logging.info(f"Sentence: '{sentence}'")
                     if sentence.strip():  # Check if the sentence is not empty or whitespace
                         try:
                             # Choose a random bot
                             bot = random.choice(self.bot_manager.bots)
                             logging.info(f"Selected bot: {bot}")
                             logging.info(f"Sending message: {sentence}")
-                            self.bot_manager.run_bot(sentence, bot)
+                            asyncio.run(self.bot_manager.run_bot(sentence, bot))
                             logging.info(f"Message sent: {sentence}")
                             time.sleep(random.randint(1, 2))
                         except Exception as e:
