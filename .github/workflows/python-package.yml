@@ -85,7 +85,7 @@ jobs:
           ROLE_ID: ${{ secrets.ROLE_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          pyinstaller --additional-hooks-dir=./hooks --noconfirm --onefile --windowed --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT Premium" --clean `
+          pyinstaller --additional-hooks-dir=./hooks --noconfirm --onefile --icon "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets\\R.ico" --name "Twitch ViewerBOT Premium" --clean `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot\\interface_assets;interface_assets/" `
           --add-data "D:\\a\\twitch-Viewerbot\\twitch-Viewerbot\\src\\twitchbot;twitchbot/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
