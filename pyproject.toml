@@ -20,6 +20,7 @@ dependencies = [
     "python-decouple==3.8",
     "emoji==2.12.1",
     "python_dotenv==1.0.1",
+    "python-decouple==3.8",
 ]
 
 [project.optional-dependencies]
