@@ -1,33 +1,69 @@
-import requests
+import asyncio
+import threading
+import logging
+import aiohttp
 from twitchio.ext import commands
 
+logging.basicConfig(level=logging.INFO)
 class Bot(commands.Bot):
 
-    def __init__(self, name, token, channel):
-        super().__init__(irc_token=token, name=name, prefix='!',
+    def __init__(self, name, irc_token, channel, token):
+        super().__init__(token=token, nick=name, irc_token=irc_token, prefix='!',
                          initial_channels=[channel])
+        logging.debug(f'Bot initialized: {name}')
 
-    async def event_ready(self):
-        print(f'Ready | {self.nick}')
+    def event_ready(self):
+        logging.info(f'Ready | {self.nick}')
 
-    async def send_message(self, message):
-        await self.get_channel(self.initial_channels[0]).send(message)
+    def start_and_send_message(self, message):
+        logging.info(f"Starting bot {self.nick} to send message.")
+        try:
+            self.start()
+            channel = self.get_channel(self.initial_channels[0])
+            logging.info(f"get_channel returned: {channel}")
+            if channel:
+                logging.info(f"Channel {channel} found, sending message: {message}")
+                threading.Thread(target=channel.send, args=(message,)).start()
+                logging.info(f"Message sent: {message}")
+            else:
+                logging.error(f"Could not get channel: {self.initial_channels[0]}")
+        except Exception as e:
+            logging.error(f"Error in start_and_send_message: {e}")
 
 class TwitchBotManager:
 
-    def __init__(self, account_list):
+    def __init__(self, account_list, channel_name):
         self.bots = []
-        for account in account_list:
-            account_parts = account.split('|')[0].split('=')
-            if len(account_parts) > 1:
-                oauth_token = account_parts[1].strip()
-                name = account.split('|')[1].split(':')[1].strip()
-                print(f"Creating bot for {name}")
-                print(f"Token: {oauth_token}")
-                self.bots.append(Bot(name=name, token=f'oauth:{oauth_token}', channel=name))
-            else:
-                print(f"Invalid account string: {account}")
+        self.account_list = account_list
+        self.channel_name = channel_name
 
-    async def run_bots(self):
-        for bot in self.bots:
-            await bot.start()
+    def initialize_bots(self):
+        for account in self.account_list:
+            oauth_token = account.strip()
+            logging.info(f"Creating bot for {oauth_token}")
+            if self.is_token_valid(oauth_token):
+                self.bots.append(Bot(name=oauth_token, irc_token=f'oauth:{oauth_token}', channel=self.channel_name, token=oauth_token))
+            else:
+                logging.error(f"Invalid token for account: {oauth_token}")
+
+    async def is_token_valid(self, token):
+        url = f"https://id.twitch.tv/oauth2/validate"
+        headers = {"Authorization": f"OAuth {token}"}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as resp:
+                if resp.status == 200:
+                    return True
+                else:
+                    return False
+
+    def run_bot(self, message, bot):
+        logging.info('Running bots')
+        bot.start_and_send_message(message)
+
+    def start(self):
+        def run_in_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.initialize_bots())
+        threading.Thread(target=run_in_thread).start()

@@ -132,3 +132,4 @@ test/test_main.py
 output.mp3
 
 src/twitchbot/tokens.txt
+src/twitchbot/valid_tokens.txt

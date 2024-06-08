@@ -7,6 +7,7 @@ import random
 import asyncio
 import datetime
 import requests
+import logging
 from sys import exit
 from pathlib import Path
 from dotenv import load_dotenv
@@ -41,6 +42,8 @@ class ViewerBot:
             self.type_of_proxy = type_of_proxy
         self.proxy_imported = proxy_imported
         self.timeout = timeout
+        self.channel_name = channel_name
+        self.tokens = []
         self.channel_url = "https://www.twitch.tv/" + channel_name.lower()
         self.proxyreturned1time = False
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
@@ -210,17 +213,28 @@ class ViewerBot:
                     messages=chat
                 )
 
-                print(response)
-    
                 response_text = response.choices[0].message.content
+                print(response_text)
                 # Split the response text into sentences
-                sentences = re.split(r'[.!?]\s*', response_text)
+                sentences = re.findall(r'[^.!?]*[.!?]', response_text)
+                print(sentences)
 
+                # Iterate over the sentences
                 for sentence in sentences:
-                    bot = random.choice(self.bot_manager.bots)
-                    print(sentence)
-                    await bot.send_message(sentence)
-                    await asyncio.sleep(random.randint(0.3, 1))
+                    logging.info(f"Sentence: '{sentence}'")
+                    if sentence.strip():  # Check if the sentence is not empty or whitespace
+                        try:
+                            # Choose a random bot
+                            bot = random.choice(self.bot_manager.bots)
+                            logging.info(f"Selected bot: {bot}")
+                            logging.info(f"Sending message: {sentence}")
+                            await bot.start_and_send_message(sentence)
+                            logging.info(f"Message sent: {sentence}")
+                            await asyncio.sleep(random.randint(0.3, 1))
+                        except Exception as e:
+                            logging.error(f"Failed to send message with bot {bot.name}: {e}")
+                    else:
+                        logging.error(f"Message is empty or whitespace: {sentence}")
 
                 # Start a new MP3 file for the next chunk
                 output_container = av.open(output_filename, 'w')
@@ -232,6 +246,27 @@ class ViewerBot:
         for packet in output_stream.encode(None):
             output_container.mux(packet)
         output_container.close()
+
+    def start_bot_manager(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Wrap the coroutine in a Task and run it
+        task = loop.create_task(self.bot_manager.initialize_bots())
+        loop.run_until_complete(task)
+
+        try:
+            # Run the event loop forever
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            # Cancel all tasks running on the event loop
+            for task in asyncio.Task.all_tasks(loop):
+                task.cancel()
+            # Gather all tasks to give them the opportunity to cancel
+            loop.run_until_complete(asyncio.gather(*asyncio.Task.all_tasks(loop), return_exceptions=True))
+            loop.close()
         
     def main(self):
         self.proxies = self.get_proxies()
@@ -239,19 +274,26 @@ class ViewerBot:
         self.create_session()
         streams = self.session.streams(self.channel_url)
         audio_stream = streams['audio_only']
-        self.bot_manager = TwitchBotManager('tokens.txt')
+
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__))) + '/valid_tokens.txt', 'r') as file:
+                self.tokens = [line.strip() for line in file.readlines()]
+        except :
+            with open(base_path + '/valid_tokens.txt', 'r') as file:
+                self.tokens = [line.strip() for line in file.readlines()]
+    
+        self.bot_manager = TwitchBotManager(self.tokens, self.channel_name)
+        self.managed_bot = Thread(target=self.start_bot_manager)
+        self.managed_bot.start()
 
         # Create a new event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self.audio_to_text(audio_stream.url, 'output.wav'))
 
-        # Run the coroutine in the event loop
-        loop.run_until_complete(self.bot_manager.run_bots())
-
-        loop.run_in_executor(None, asyncio.run, self.audio_to_text(audio_stream.url, "output.wav"))
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-
+    
             for p in self.proxies:
                 # Add each proxy to the all_proxies list
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
@@ -262,7 +304,7 @@ class ViewerBot:
                 self.threaded = Thread(target=self.open_url, args=(proxy_data,))
                 self.threaded.daemon = True  # This thread dies when the main thread (only non-daemon thread) exits.
                 self.threaded.start()
-
+    
             if elapsed_seconds >= 300 and not self.proxy_imported:
                 # Refresh the self.proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
