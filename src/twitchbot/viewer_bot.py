@@ -227,7 +227,8 @@ class ViewerBot:
                             bot = random.choice(self.bot_manager.bots)
                             logging.info(f"Selected bot: {bot}")
                             logging.info(f"Sending message: {sentence}")
-                            asyncio.run(self.bot_manager.run_bot(sentence, bot))
+                            loop = asyncio.get_event_loop()
+                            loop.run_until_complete(self.bot_manager.run_bot(sentence, bot))
                             logging.info(f"Message sent: {sentence}")
                             time.sleep(random.randint(1, 2))
                         except Exception as e:

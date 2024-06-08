@@ -66,7 +66,12 @@ class TwitchBotManager:
 
     async def run_bot(self, message, bot):
         logging.info('Running bots')
-        await bot.start_and_send_message(message)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            await bot.start_and_send_message(message)
+        finally:
+            loop.close()
 
     def start(self):
         def run_in_thread():
