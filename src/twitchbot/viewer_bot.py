@@ -164,7 +164,7 @@ class ViewerBot:
         # Stop the ViewerBot by setting the stop event
         self.stop_event = True
 
-    async def audio_to_text(self, audio_stream_url, output_filename):
+    def audio_to_text(self, audio_stream_url, output_filename):
         # Open the HLS stream
         input_container = av.open(audio_stream_url)
         input_stream = input_container.streams.get(audio=0)[0]
@@ -230,7 +230,7 @@ class ViewerBot:
                             logging.info(f"Sending message: {sentence}")
                             self.bot_manager.run_bot(sentence, bot)
                             logging.info(f"Message sent: {sentence}")
-                            await asyncio.sleep(random.randint(0.3, 1))
+                            time.sleep(random.randint(1, 2))
                         except Exception as e:
                             logging.error(f"Failed to send message with bot {bot.name}: {e}")
                     else:
@@ -286,10 +286,7 @@ class ViewerBot:
         self.managed_bot = Thread(target=self.start_bot_manager)
         self.managed_bot.start()
 
-        # Create a new event loop for this thread
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_until_complete(self.audio_to_text(audio_stream.url, 'output.wav'))
+        Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.wav')).start()
 
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()

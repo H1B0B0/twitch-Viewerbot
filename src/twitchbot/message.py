@@ -10,25 +10,32 @@ class Bot(commands.Bot):
     def __init__(self, name, irc_token, channel, token):
         super().__init__(token=token, nick=name, irc_token=irc_token, prefix='!',
                          initial_channels=[channel])
+        self.name = name  # Add this line
+        self.initial_channels = [channel]  # Add this line
         logging.debug(f'Bot initialized: {name}')
 
     def event_ready(self):
         logging.info(f'Ready | {self.nick}')
 
-    def start_and_send_message(self, message):
+    async def start_and_send_message(self, message):
         logging.info(f"Starting bot {self.nick} to send message.")
         try:
-            self.start()
+            await self.start()
             channel = self.get_channel(self.initial_channels[0])
             logging.info(f"get_channel returned: {channel}")
+            print(f"get_channel returned: {channel}")
             if channel:
                 logging.info(f"Channel {channel} found, sending message: {message}")
-                threading.Thread(target=channel.send, args=(message,)).start()
+                print(f"Channel {channel} found, sending message: {message}")
+                await channel.send(message)
                 logging.info(f"Message sent: {message}")
+                print(f"Message sent: {message}")
             else:
                 logging.error(f"Could not get channel: {self.initial_channels[0]}")
+                print(f"Could not get channel: {self.initial_channels[0]}")
         except Exception as e:
             logging.error(f"Error in start_and_send_message: {e}")
+            print(f"Error in start_and_send_message: {e}")
 
 class TwitchBotManager:
 
@@ -57,9 +64,9 @@ class TwitchBotManager:
                 else:
                     return False
 
-    def run_bot(self, message, bot):
+    async def run_bot(self, message, bot):
         logging.info('Running bots')
-        bot.start_and_send_message(message)
+        await bot.start_and_send_message(message)
 
     def start(self):
         def run_in_thread():
