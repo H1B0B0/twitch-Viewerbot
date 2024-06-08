@@ -98,7 +98,7 @@ jobs:
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\dotenv;dotenv/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\av;av/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\openai;openai/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\decouple;decouple/" `
+          --add-data "${env:pythonLocation}\\Lib\\site-packages\\decouple.py;./" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\emoji;emoji/" `
           --hidden-import "os" `
           --hidden-import "requests" `
