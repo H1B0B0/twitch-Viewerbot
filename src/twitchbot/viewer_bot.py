@@ -256,13 +256,18 @@ class ViewerBot:
         streams = self.session.streams(self.channel_url)
         audio_stream = streams['audio_only']
 
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
         if self.chat_messages:
             try:
-                with open(os.path.join(os.path.dirname(os.path.abspath(__file__))) + '/valid_tokens.txt', 'r') as file:
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'valid_tokens.txt'), 'r') as file:
                     self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
             except:
-                with open((os.path.join(base_path, 'twitchbot', '/valid_tokens.txt')), 'r') as file:
-                    self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
+                try:
+                    with open(os.path.join(base_path, 'twitchbot', 'valid_tokens.txt'), 'r') as file:
+                        self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
+                except FileNotFoundError:
+                    print("Error: valid_tokens.txt file not found")
 
             Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.wav')).start()
 
