@@ -262,12 +262,12 @@ class ViewerBot:
             try:
                 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'valid_tokens.txt'), 'r') as file:
                     lines = file.readlines()
-                    self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
+                    self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in lines]
             except:
                 try:
                     with open(os.path.join(base_path, 'twitchbot', 'valid_tokens.txt'), 'r') as file:
                         lines = file.readlines()
-                        self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in file.readlines()]
+                        self.tokens = [{'username': line.split('|')[0].split(':')[1].strip(), 'token': line.split('|')[1].split(':')[1].strip()} for line in lines]
                 except FileNotFoundError:
                     print("Error: valid_tokens.txt file not found")
 
