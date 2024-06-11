@@ -21,6 +21,7 @@ dependencies = [
     "emoji==2.12.1",
     "python_dotenv==1.0.1",
     "python-decouple==3.8",
+    "faster_whisper==1.0.2",
 ]
 
 [project.optional-dependencies]

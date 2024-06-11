@@ -10,12 +10,14 @@ import logging
 from sys import exit
 from pathlib import Path
 from dotenv import load_dotenv
+from pydub import AudioSegment
 from openai import OpenAI
 from threading import Thread, Semaphore
 from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
 from twitch_chat_irc import TwitchChatIRC
+from speech_to_text import audiototext
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -50,6 +52,9 @@ class ViewerBot:
         self.chat_messages = chat_messages
         self.game_name = game_name
         self.number_of_messages = number_of_messages
+        self.client = OpenAI(
+            api_key=OPENAI_API_KEY
+        )
 
     def create_session(self):
         # Create a session for making requests
@@ -172,7 +177,6 @@ class ViewerBot:
         input_stream = input_container.streams.get(audio=0)[0]
 
         # Open an MP3 file
-        output_filename = output_filename.replace('.wav', '.mp3')
         output_container = av.open(output_filename, 'w')
         output_stream = output_container.add_stream('mp3')
 
@@ -193,16 +197,9 @@ class ViewerBot:
                     output_container.mux(packet)
                 output_container.close()
 
-                audio_file_path = Path.cwd() / output_filename
-                client = OpenAI(api_key=OPENAI_API_KEY)
-                # Transcribe the audio file using OpenAI's API
-                with open(audio_file_path, 'rb') as audio_file:
-                    transcript = client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file
-                )
-
-                transcription_text = transcript.text
+                audio_file_path = str(Path.cwd() / output_filename) 
+                transcription_text = audiototext(audio_file_path)
+                transcription_text = ' '.join(transcription_text)
                 os.remove(audio_file_path)
 
                 chat = [
@@ -211,9 +208,11 @@ class ViewerBot:
                     {"role": "user", "content": transcription_text}
                 ]
 
-                response = client.chat.completions.create(
+                response = self.client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=chat
+                    messages=chat,
+                    max_tokens=150,  # Increase max tokens
+                    temperature=0.6,  # Adjust temperature
                 )
 
                 response_text = response.choices[0].message.content
@@ -223,6 +222,7 @@ class ViewerBot:
                 # Iterate over the sentences
                 for sentence in sentences:
                     sentence = sentence.replace('\n', '')
+                    print(sentence)
                     if sentence.strip():
                         selected_token = random.choice(self.tokens)
                         connection = TwitchChatIRC(username=selected_token['username'], password="oauth:" + selected_token['token'])
@@ -271,7 +271,7 @@ class ViewerBot:
                 except FileNotFoundError:
                     print("Error: valid_tokens.txt file not found")
 
-            Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.wav')).start()
+            Thread(target=self.audio_to_text, args=(audio_stream.url, 'output.mp3')).start()
 
         while not self.stop_event:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
@@ -293,3 +293,4 @@ class ViewerBot:
                 self.proxies = self.get_proxies()
                 elapsed_seconds = 0  # Reset elapsed time
                 self.proxyrefreshed = False
+    
