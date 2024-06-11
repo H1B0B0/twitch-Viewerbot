@@ -72,7 +72,7 @@ if data['tag_name'] > CURRENT_VERSION:
     os.rename('new_version.exe', sys.argv[0])
 
     # Show a message to the user
-    root = tk.Tk()
+    root = customtkinter.CTk()
     root.withdraw()  # Hide the main window
     messagebox.showinfo("Update", "The application has been updated. It will now restart.")
     root.destroy()  # Destroy the main window

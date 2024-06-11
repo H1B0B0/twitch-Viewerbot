@@ -17,7 +17,7 @@ from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
 from twitch_chat_irc import TwitchChatIRC
-from speech_to_text import audiototext
+from speech_to_text import audiototext, create_sentence
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -200,19 +200,21 @@ class ViewerBot:
                 audio_file_path = str(Path.cwd() / output_filename) 
                 transcription_text = audiototext(audio_file_path)
                 transcription_text = ' '.join(transcription_text)
+                result = create_sentence(transcription_text, self.game_name, self.number_of_messages)
+                transcription_text = result[0]['generated_text']
                 os.remove(audio_file_path)
 
                 chat = [
                     {"role": "system", "content": "You are a viewer on a Twitch Stream."},
-                    {"role": "user", "content": f"This is a transcription from a {self.game_name} stream. Please generate at least {self.number_of_messages} sentences to continue the conversation. Give questions or answers like you are a viewer. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Don't place emoji on all sentences."},
+                    {"role": "user", "content": f"This is a transcription from a {self.game_name} stream. Please generate at least {self.number_of_messages} sentences to continue the conversation. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person."},
                     {"role": "user", "content": transcription_text}
                 ]
 
                 response = self.client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=chat,
-                    max_tokens=150,  # Increase max tokens
-                    temperature=0.6,  # Adjust temperature
+                    max_tokens=150,
+                    temperature=1,
                 )
 
                 response_text = response.choices[0].message.content
