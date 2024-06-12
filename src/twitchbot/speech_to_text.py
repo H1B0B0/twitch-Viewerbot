@@ -121,7 +121,7 @@ def create_sentence(transcription, game_name, number_of_messages):
 
     input_text = f"This is a transcription from a {game_name} stream. Please generate at least {number_of_messages} sentences to continue the conversation. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Here is the Twitch transcription: {transcription}"
     encoded_input = tokenizer(input_text, return_tensors="pt")
-    output_tokens = model.generate(**encoded_input, max_length=500, max_new_tokens=500)
+    output_tokens = model.generate(**encoded_input, max_length=500, max_new_tokens=500, do_sample=True)
 
     # Decode the output tokens to get the generated text
     generated_text = tokenizer.decode(output_tokens[0])
