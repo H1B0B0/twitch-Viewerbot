@@ -1,8 +1,8 @@
 import os
 import sys
 import platform
-
 import customtkinter as ctk
+from queue import Queue, Empty
 from tkinter import messagebox
 from faster_whisper import WhisperModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -12,51 +12,54 @@ from pathlib import Path
 # Global variable to store the progress and download_window
 download_info = {}
 
+queue = Queue()
+
 current_path = Path(__file__).resolve().parent
 ICON = current_path/"interface_assets"/"R.ico"
 THEME = current_path/"interface_assets"/"purple.json"
 
-class TextRedirector(object):
-    def __init__(self, widget):
-        self.widget = widget
+class TextboxStdout:
+    def __init__(self, textbox):
+        self.textbox = textbox
+        self.text = ""
 
-    def write(self, str):
-        self.widget.insert(ctk.END, str)
-        self.widget.see(ctk.END)
+    def write(self, s):
+        self.text += s
+        self.textbox.configure(state=ctk.NORMAL)
+        self.textbox.insert(ctk.END, s)
+        self.textbox.see(ctk.END)
+        self.textbox.configure(state=ctk.DISABLED)
+        self.text = ""
 
     def flush(self):
-        pass
+        pass  # In this case, we don't need to do anything to flush.
 
-def instantiate_model(download_window, progress):
-    
+def update_textbox(text):
+    text.insert(ctk.END, sys.stdout.text)
+    text.see(ctk.END)
+
+    # Schedule the function to run again after 500ms
+    text.after(500, update_textbox, text)
+
+def instantiate_model(download_window, progress, text):
     model_size = "medium"
-
-    text = ctk.CTkTextbox(download_window)
-    text.pack(side="top", fill="both", expand=True)
-    sys.stdout = TextRedirector(text)
+    sys.stdout = TextboxStdout(text)
 
     # Instantiate the WhisperModel
-    audio = WhisperModel(model_size, device="cpu", compute_type="int8")
+    print("Starting to download the audiomodel...")
+    WhisperModel(model_size, device="cpu", compute_type="int8")
+    print("WhisperModel downloaded.")
 
-    # Redirect stdout to the text box
-    old_stdout = sys.stdout
-    sys.stdout = TextRedirector(text)
+    print("Starting to download the tokenizer...")
+    AutoTokenizer.from_pretrained("google/gemma-2b")
+    print("Tokenizer downloaded.")
 
-    tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b")
-    model = AutoModelForCausalLM.from_pretrained("google/gemma-2b")
+    print("Starting to download the model...")
+    AutoModelForCausalLM.from_pretrained("google/gemma-2b")
+    print("Model downloaded.")
 
-    # Restore stdout
-    sys.stdout = old_stdout
-
-    # Store the model in the global variable
-    download_info['audiomodel'] = audio
-    download_info['tokenizer'] = tokenizer
-    download_info['model'] = model
-
-    progress.stop()
-    download_window.destroy()
-
-    console_window.mainloop()
+    # Put a message in the queue
+    queue.put("Download finished")
 
 def download_model():
     model_size = "medium"
@@ -68,6 +71,7 @@ def download_model():
         # Create a new window
         download_window = ctk.CTk()
         download_window.title("Downloading Model")
+        download_window.geometry("500x200")
 
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme(THEME)
@@ -79,10 +83,31 @@ def download_model():
         progress = ctk.CTkProgressBar(download_window, mode='indeterminate')
         progress.pack(pady=10, padx=10)
 
+        # Create a text box in the download_window
+        text = ctk.CTkTextbox(download_window)
+        text.pack(side="top", fill="both", expand=True)
+
+
+        text.after(100, update_textbox, text)
+
         progress.start()
 
+        def check_queue():
+            try:
+                msg = queue.get_nowait()
+                if msg == "Download finished":
+                    progress.stop()
+                    download_window.destroy()
+            except Empty:  # Catch Empty from queue module
+                pass
+
+            # Schedule the function to run again after 100ms
+            download_window.after(100, check_queue)
+
+        check_queue()
+
         # Run instantiate_model in the main thread
-        download_window.after(1000, instantiate_model, download_window, progress)  # Change this line
+        Thread(target=instantiate_model, args=(download_window, progress, text)).start()
         download_window.mainloop()
     else :   
        return
