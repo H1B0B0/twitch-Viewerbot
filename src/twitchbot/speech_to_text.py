@@ -1,5 +1,6 @@
 import os
 import sys
+import torch
 import platform
 import customtkinter as ctk
 from queue import Queue, Empty
@@ -42,12 +43,14 @@ def update_textbox(text):
     text.after(500, update_textbox, text)
 
 def instantiate_model(download_window, progress, text):
-    model_size = "medium"
+    model_size = "small"
     sys.stdout = TextboxStdout(text)
+    device = "cuda" if torch.cuda.is_available() else "cpu"  # Check if GPU is available
+
 
     # Instantiate the WhisperModel
     print("Starting to download the audiomodel...")
-    WhisperModel(model_size, device="cpu", compute_type="int8")
+    WhisperModel(model_size, device=device, compute_type="int8")
     print("WhisperModel downloaded.")
 
     print("Starting to download the tokenizer...")
@@ -62,7 +65,7 @@ def instantiate_model(download_window, progress, text):
     queue.put("Download finished")
 
 def download_model():
-    model_size = "medium"
+    model_size = "small"
     model_path = f"~/.cache/huggingface/transformers/{model_size}"
     model_path2 = f"~/.cache/huggingface/transformers/hub/models--google--gemma-2b"
     if not (os.path.exists(os.path.expanduser(model_path)) and os.path.exists(os.path.expanduser(model_path2))):
@@ -113,14 +116,17 @@ def download_model():
        return
     
 def create_sentence(transcription, game_name, number_of_messages):
-
     tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b")
     model = AutoModelForCausalLM.from_pretrained("google/gemma-2b")
 
-    # Access the model from the global variable
-    response = tokenizer(f"This is a transcription from a {game_name} stream. Please generate at least {number_of_messages} sentences to continue the conversation. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Here is the Twitch transcription: {transcription}", return_tensors="pt")
-    response = model.generate(**response)
-    return response
+    input_text = f"This is a transcription from a {game_name} stream. Please generate at least {number_of_messages} sentences to continue the conversation. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Here is the Twitch transcription: {transcription}"
+    encoded_input = tokenizer(input_text, return_tensors="pt")
+    output_tokens = model.generate(**encoded_input, max_length=500, max_new_tokens=500)
+
+    # Decode the output tokens to get the generated text
+    generated_text = tokenizer.decode(output_tokens[0])
+
+    return generated_text
 
 def audiototext(SPEECH_FILE):
     model_size = "medium"
@@ -140,6 +146,7 @@ def audiototext(SPEECH_FILE):
 
 
 if __name__ == "__main__":
-    download_model()
-    #audiototext("C:/Users/HP/Downloads/2021-10-16_14-58-00.wav")
-    #create_sentence("This is a test", "test", 1)
+    # download_model()
+    text = audiototext("output.mp3")
+    response = create_sentence(text, "test", 1)
+    print(response)
