@@ -115,23 +115,34 @@ def download_model():
     else :   
        return
     
-def create_sentence(transcription, game_name, number_of_messages):
-    tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b")
-    model = AutoModelForCausalLM.from_pretrained("google/gemma-2b")
-
-    input_text = f"This is a transcription from a {game_name} stream. Please generate at least {number_of_messages} sentences to continue the conversation. Please reply in the language of the stream. And if you aren't inspired, you can generate just emoji reactions. We need some reaction in the chat. Write the sentence at the first person. Here is the Twitch transcription: {transcription}"
+def create_sentence(transcription_segments, game_name, number_of_messages):
+    # Concatenate transcription segments into a single string
+    transcription = " ".join(transcription_segments)
+    
+    # Simplify the prompt
+    input_text = f"Transcription: {transcription} Based on the above, generate a continuation in the same language and in the context of the game {game_name}."
+    
+    # Load a more appropriate model for generating conversational text
+    tokenizer = AutoTokenizer.from_pretrained("jondurbin/airoboros-gpt-3.5-turbo-100k-7b")
+    model = AutoModelForCausalLM.from_pretrained("jondurbin/airoboros-gpt-3.5-turbo-100k-7b")
+    
     encoded_input = tokenizer(input_text, return_tensors="pt")
-    output_tokens = model.generate(**encoded_input, max_length=500, max_new_tokens=500, do_sample=True)
-
+    output_tokens = model.generate(
+        **encoded_input,
+        max_length=500,
+        num_return_sequences=1,
+        do_sample=True,
+        top_p=0.95,
+        temperature=0.7
+    )
+    
     # Decode the output tokens to get the generated text
-    generated_text = tokenizer.decode(output_tokens[0])
-
+    generated_text = tokenizer.decode(output_tokens[0], skip_special_tokens=True)
     return generated_text
 
 def audiototext(SPEECH_FILE):
     model_size = "medium"
     segmentresult = []
-
 
     audio = WhisperModel(model_size, device="cpu", compute_type="int8")
 

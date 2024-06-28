@@ -5,7 +5,7 @@ description = "Twitch Bot for making fake viewers on your live"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "requests==2.32.2",
+    "requests==2.32.3",
     "streamlink==5.5.1",
     "fake_useragent==1.1.3",
     "customtkinter==5.1.3",

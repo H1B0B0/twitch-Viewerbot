@@ -200,8 +200,8 @@ class ViewerBot:
                 audio_file_path = str(Path.cwd() / output_filename) 
                 transcription_text = audiototext(audio_file_path)
                 transcription_text = ' '.join(transcription_text)
-                result = create_sentence(transcription_text, self.game_name, self.number_of_messages)
-                transcription_text = result[0]['generated_text']
+                # result = create_sentence(transcription_text, self.game_name, self.number_of_messages)
+                # transcription_text = result[0]['generated_text']
                 os.remove(audio_file_path)
 
                 chat = [
