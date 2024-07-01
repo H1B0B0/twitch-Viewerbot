@@ -54,7 +54,7 @@ class ViewerBot:
             if self.proxy_file:
                 try:
                     with open(self.proxy_file, 'r') as f:
-                        lines = [line.strip() for line in f.readlines() if line.strip()]
+                        lines = [self.extract_ip_port(line.strip()) for line in f.readlines() if line.strip()]
                         self.proxyrefreshed = True
                         return lines
                 except FileNotFoundError:
@@ -62,18 +62,22 @@ class ViewerBot:
                     sys.exit(1)
             else:
                 try:
-                    response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all")
+                    response = requests.get(f"https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol=socks4,socks5&proxy_format=protocolipport&format=text&timeout=20000")
                     if response.status_code == 200:
-                        lines = []
                         lines = response.text.split("\n")
-                        lines = [line.strip() for line in lines if line.strip()]
+                        lines = [self.extract_ip_port(line.strip()) for line in lines if line.strip()]
                         self.proxyrefreshed = True
                         return lines
-                except:
-                    if len(response.text) == "":
-                        console.print("Limit of proxy retrieval reached. Retry later", style="bold red")
-                        return []
-                    pass
+                except Exception as e:
+                    print(f"Error fetching proxies: {e}")
+                    return []
+
+    def extract_ip_port(self, proxy):
+        # Extract IP:PORT from a proxy string
+        if proxy.startswith("socks4://") or proxy.startswith("socks5://"):
+            return proxy.split("://")[1]
+        else:
+            return proxy  # If protocol is already stripped, return as is
 
     def get_url(self):
         url = ""
@@ -108,7 +112,7 @@ class ViewerBot:
                 
                 live.update(table)
                 if self.should_stop:
-                        sys.exit()
+                    sys.exit()
 
     def open_url(self, proxy_data):
         self.active_threads += 1
@@ -119,21 +123,29 @@ class ViewerBot:
             if proxy_data['url'] == "":
                 proxy_data['url'] = self.get_url()
             current_url = proxy_data['url']
+
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                    current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
+                    # Configure proxies for both SOCKS4 and SOCKS5
+                    proxies = {
+                        "http": f"socks4://{proxy_data['proxy']}",
+                        "https": f"socks4://{proxy_data['proxy']}",
+                        "http_socks5": f"socks5://{proxy_data['proxy']}",
+                        "https_socks5": f"socks5://{proxy_data['proxy']}",
+                    }
                     with requests.Session() as s:
-                        s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
+                        s.head(current_url, proxies=proxies, headers=headers, timeout=10)
                         self.request_count += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
-            except:
+            except Exception as e:
+                # Handle specific exceptions if needed
                 pass
             finally:
                 self.active_threads -= 1
                 self.thread_semaphore.release()  # Release the semaphore
 
-        except (KeyboardInterrupt):
+        except (KeyboardInterrupt, SystemExit):
             self.should_stop = True
 
     def main(self):
@@ -146,20 +158,21 @@ class ViewerBot:
         self.display_thread = Thread(target=self.update_display)
         self.display_thread.daemon = True
         self.display_thread.start()
+        
         while True:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
             for p in proxies:
                 self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
 
-            for i in range(0, int(self.nb_of_threads)):
+            for i in range(0, self.nb_of_threads):
                 acquired = self.thread_semaphore.acquire()  # Acquire the semaphore with a timeout
                 if acquired:
                     threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
                     threaded.daemon = True  # This thread dies when main thread (only non-daemon thread) exits.
                     threaded.start()
 
-            if elapsed_seconds >= 300 and self.proxy_imported == False:
+            if elapsed_seconds >= 300:
                 # Refresh the proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
                 self.proxyrefreshed = False
