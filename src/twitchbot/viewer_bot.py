@@ -96,7 +96,7 @@ class ViewerBot:
 
         if self.proxylist == None or self.proxyrefreshed == False: 
             try:
-                response = requests.get(f"https://api.proxyscrape.com/v3/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
+                response = requests.get(f"https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
                     lines = []
                     lines = response.text.split("\n")
