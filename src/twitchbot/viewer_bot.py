@@ -10,7 +10,6 @@ import logging
 from sys import exit
 from pathlib import Path
 from dotenv import load_dotenv
-from pydub import AudioSegment
 from openai import OpenAI
 from threading import Thread, Semaphore
 from streamlink import Streamlink
@@ -97,7 +96,7 @@ class ViewerBot:
 
         if self.proxylist == None or self.proxyrefreshed == False: 
             try:
-                response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
+                response = requests.get(f"https://api.proxyscrape.com/v3/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
                 if response.status_code == 200:
                     lines = []
                     lines = response.text.split("\n")
@@ -126,33 +125,25 @@ class ViewerBot:
             exit()
 
     def open_url(self, proxy_data):
-
         if self.stop_event:
             self.active_threads -= 1
             return
         self.active_threads += 1
-        # Open the stream URL using the given proxy
         headers = {'User-Agent': self.ua.random}
         current_index = self.all_proxies.index(proxy_data)
-
+    
         if proxy_data['url'] == "":
-            # If the URL is not fetched for the current proxy, fetch it
             proxy_data['url'] = self.get_url()
         current_url = proxy_data['url']
-        username = proxy_data.get('username')
-        password = proxy_data.get('password')
-        if username and password:
-            # Set the proxy with authentication if username and password are available
-            current_proxy = {"http": f"{username}:{password}@{proxy_data['proxy']}", "https": f"{username}:{password}@{proxy_data['proxy']}"}
-        else:
-            current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
-
+    
+        # Extraction du type de proxy et de l'adresse
+        proxy_type, proxy_address = self.extract_proxy_type_and_address(proxy_data['proxy'])
+        proxies = self.configure_proxies(proxy_type, proxy_address, proxy_data)
+    
         try:
             if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                # Refresh the proxy after a random interval
-                current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
                 with requests.Session() as s:
-                    response = self.make_request_with_retry(s, current_url, current_proxy, headers, proxy_data['proxy'])
+                    response = self.make_request_with_retry(s, current_url, proxies, headers, proxy_data['proxy'])
                 if response:
                     self.nb_requests += 1
                     proxy_data['time'] = time.time()
@@ -166,6 +157,31 @@ class ViewerBot:
                 return
             self.thread_semaphore.release()  # Release the semaphore
             self.active_threads -= 1
+    
+    def extract_proxy_type_and_address(self, proxy_string):
+        if proxy_string.startswith("socks4://"):
+            return "socks4", proxy_string.split("://")[1]
+        elif proxy_string.startswith("socks5://"):
+            return "socks5", proxy_string.split("://")[1]
+        elif proxy_string.startswith("http://"):
+            return "http", proxy_string.split("://")[1]
+        else:
+            return "http", proxy_string
+    
+    def configure_proxies(self, proxy_type, proxy_address, proxy_data):
+        username = proxy_data.get('username')
+        password = proxy_data.get('password')
+        if username and password:
+            credentials = f"{username}:{password}@"
+        else:
+            credentials = ""
+    
+        if proxy_type in ["socks4", "socks5"]:
+            return {"http": f"{proxy_type}://{credentials}{proxy_address}",
+                    "https": f"{proxy_type}://{credentials}{proxy_address}"}
+        else:  # Default to HTTP
+            return {"http": f"http://{credentials}{proxy_address}",
+                    "https": f"http://{credentials}{proxy_address}"}
 
     def stop(self):
         # Stop the ViewerBot by setting the stop event
