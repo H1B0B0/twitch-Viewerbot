@@ -62,7 +62,7 @@ class ViewerBot:
                     sys.exit(1)
             else:
                 try:
-                    response = requests.get(f"https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol=socks4,socks5&proxy_format=protocolipport&format=text&timeout=20000")
+                    response = requests.get(f"https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol=all&proxy_format=protocolipport&format=text&timeout=10000")
                     if response.status_code == 200:
                         lines = response.text.split("\n")
                         lines = [self.extract_ip_port(line.strip()) for line in lines if line.strip()]
@@ -73,11 +73,15 @@ class ViewerBot:
                     return []
 
     def extract_ip_port(self, proxy):
-        # Extract IP:PORT from a proxy string
-        if proxy.startswith("socks4://") or proxy.startswith("socks5://"):
-            return proxy.split("://")[1]
+        # Extract IP:PORT from a proxy string and determine its type
+        if proxy.startswith("socks4://"):
+            return ("socks4", proxy.split("://")[1])
+        elif proxy.startswith("socks5://"):
+            return ("socks5", proxy.split("://")[1])
+        elif proxy.startswith("http://"):
+            return ("http", proxy.split("://")[1])
         else:
-            return proxy  # If protocol is already stripped, return as is
+            return ("http", proxy)  # Default
 
     def get_url(self):
         url = ""
@@ -126,13 +130,16 @@ class ViewerBot:
 
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                    # Configure proxies for both SOCKS4 and SOCKS5
-                    proxies = {
-                        "http": f"socks4://{proxy_data['proxy']}",
-                        "https": f"socks4://{proxy_data['proxy']}",
-                        "http_socks5": f"socks5://{proxy_data['proxy']}",
-                        "https_socks5": f"socks5://{proxy_data['proxy']}",
-                    }
+                    # Configure proxies based on the type (HTTP, SOCKS4, SOCKS5)
+                    proxy_type, proxy_address = proxy_data['proxy']
+                    proxies = {}
+                    if proxy_type in ["socks4", "socks5"]:
+                        proxies["http"] = f"{proxy_type}://{proxy_address}"
+                        proxies["https"] = f"{proxy_type}://{proxy_address}"
+                    else:  # Default to HTTP
+                        proxies["http"] = f"http://{proxy_address}"
+                        proxies["https"] = f"http://{proxy_address}"
+
                     with requests.Session() as s:
                         s.head(current_url, proxies=proxies, headers=headers, timeout=10)
                         self.request_count += 1
