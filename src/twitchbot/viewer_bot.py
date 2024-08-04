@@ -4,6 +4,7 @@ import re
 import sys
 import time
 import random
+import string
 import datetime
 import requests
 import logging
@@ -16,7 +17,10 @@ from streamlink import Streamlink
 from fake_useragent import UserAgent
 from requests import RequestException
 from twitch_chat_irc import TwitchChatIRC
-from speech_to_text import audiototext, create_sentence
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+# from speech_to_text import audiototext, create_sentence
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
@@ -56,34 +60,47 @@ class ViewerBot:
         )
 
     def create_session(self):
-        # Create a session for making requests
         self.ua = UserAgent()
         self.session = Streamlink()
-        self.session.set_option("http-headers", {
-            "Accept-Language": "en-US,en;q=0.5",
-            "Connection": "keep-alive",
+        
+        # Randomize HTTP headers
+        headers = {
+            "Accept-Language": random.choice(["en-US,en;q=0.5", "fr-FR,fr;q=0.5", "es-ES,es;q=0.5"]),
+            "Connection": random.choice(["keep-alive", "close"]),
             "DNT": "1",
             "Upgrade-Insecure-Requests": "1",
             "User-Agent": self.ua.random,
-            "Client-ID": "ewvlchtxgqq88ru9gmfp1gmyt6h2b93",
-            "Referer": "https://www.google.com/"
-        })
+            "Client-ID": ''.join(random.choices(string.ascii_lowercase + string.digits, k=30)),
+            "Referer": random.choice(["https://www.google.com/", "https://www.bing.com/", "https://www.yahoo.com/"])
+        }
+        
+        self.session.set_option("http-headers", headers)
+        
+        # Create a separate HTTP session
+        self.http_session = requests.Session()
+        adapter = HTTPAdapter(pool_connections=self.nb_of_threads, pool_maxsize=self.nb_of_threads)
+        self.http_session.mount('http://', adapter)
+        self.http_session.mount('https://', adapter)
+        
         return self.session
     
-    def make_request_with_retry(self, session, url, proxy, headers, proxy_used, max_retries=3):
+    def make_request_with_retry(self, url, proxy, headers, proxy_used, max_retries=3):
+        # Configure retries
+        retries = Retry(total=max_retries, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retries)
+        self.http_session.mount('http://', adapter)
+        self.http_session.mount('https://', adapter)
+        
         for _ in range(max_retries):
             try:
-                # send requests to the twitch service
-                response = session.head(url, proxies=proxy, headers=headers, timeout=((self.timeout/1000)+1))
-                if response.status_code == 200:
-                    return response
-                else:
-                    # Remove bad proxy from the list
-                    if proxy_used in self.proxies:
-                        self.proxies.remove(proxy_used)
-                    return None
+                with self.http_session.get(url, proxies=proxy, headers=headers, timeout=((self.timeout/1000)+1)) as response:
+                    if response.status_code == 200:
+                        return response
+                    else:
+                        if proxy_used in self.proxies:
+                            self.proxies.remove(proxy_used)
+                        return None
             except RequestException as e:
-                # Sort exception for remove bad proxy from the list
                 if "400 Bad Request" in str(e) or "403 Forbidden" in str(e) or "RemoteDisconnected" in str(e) or "connect timeout=10.0" in str(e):
                     if proxy_used in self.proxies:
                         self.proxies.remove(proxy_used)
@@ -131,31 +148,28 @@ class ViewerBot:
         self.active_threads += 1
         headers = {'User-Agent': self.ua.random}
         current_index = self.all_proxies.index(proxy_data)
-    
+
         if proxy_data['url'] == "":
             proxy_data['url'] = self.get_url()
         current_url = proxy_data['url']
-    
-        # Extraction du type de proxy et de l'adresse
+
         proxy_type, proxy_address = self.extract_proxy_type_and_address(proxy_data['proxy'])
         proxies = self.configure_proxies(proxy_type, proxy_address, proxy_data)
-    
+
         try:
             if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                with requests.Session() as s:
-                    response = self.make_request_with_retry(s, current_url, proxies, headers, proxy_data['proxy'])
+                response = self.make_request_with_retry(current_url, proxies, headers, proxy_data['proxy'])
                 if response:
                     self.nb_requests += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
         except Exception as e:
-            print(e)
-            pass
+            logging.error(f"Error in open_url: {e}")
         finally:
             if self.stop_event:
                 self.active_threads -= 1
                 return
-            self.thread_semaphore.release()  # Release the semaphore
+            self.thread_semaphore.release()
             self.active_threads -= 1
     
     def extract_proxy_type_and_address(self, proxy_string):
@@ -214,10 +228,14 @@ class ViewerBot:
                 output_container.close()
 
                 audio_file_path = str(Path.cwd() / output_filename) 
-                transcription_text = audiototext(audio_file_path)
-                transcription_text = ' '.join(transcription_text)
-                # result = create_sentence(transcription_text, self.game_name, self.number_of_messages)
-                # transcription_text = result[0]['generated_text']
+                client = OpenAI(api_key=OPENAI_API_KEY)
+                # Transcribe the audio file using OpenAI's API
+                with open(audio_file_path, 'rb') as audio_file:
+                    transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file
+                )
+                transcription_text = transcript.text
                 os.remove(audio_file_path)
 
                 chat = [
@@ -227,7 +245,7 @@ class ViewerBot:
                 ]
 
                 response = self.client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4o-mini",
                     messages=chat,
                     max_tokens=150,
                     temperature=1,
@@ -245,13 +263,16 @@ class ViewerBot:
                         selected_token = random.choice(self.tokens)
                         connection = TwitchChatIRC(username=selected_token['username'], password="oauth:" + selected_token['token'])
                         logging.info(f"Sending message: {sentence} with user: {selected_token['username']}")
+                        print(f"Sending message: {sentence} with user: {selected_token['username']}")
                         try:
                             connection.send(self.channel_name, sentence)
                             logging.info(f"Message sent: {sentence}")
-                            time.sleep(random.randint(0, 2))
+                            print(f"Message sent: {sentence}")
+                            time.sleep(2)
                             connection.close_connection()
                         except Exception as e:
                             logging.error(f"Failed to send message {e}")
+                            print(f"Failed to send message {e}")
                             connection.close_connection()
                     else:
                         logging.error(f"Message is empty or whitespace: {sentence}")

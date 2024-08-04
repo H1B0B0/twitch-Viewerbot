@@ -139,13 +139,14 @@ class TwitchChatIRC():
 
 	def send(self, channel_name, message):
 		self.__join_channel(channel_name)
- 
-		# check that is using custom login, not default
-		if(self.is_default_user()):
+		if self.is_default_user():
 			raise DefaultUser
 		else:
-			self.__send_raw('PRIVMSG #{} :{}'.format(channel_name.lower(),message))
-			print('Sent "{}" to {}'.format(message,channel_name))
+			try:
+				self.__send_raw('PRIVMSG #{} :{}'.format(channel_name.lower(), message))
+				print('Sent message to %s: %s', channel_name, message)
+			except Exception as e:
+				print('Error sending message to %s: %s', channel_name, e)
 
 
 if __name__ == '__main__':

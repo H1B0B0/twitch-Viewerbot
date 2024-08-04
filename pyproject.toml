@@ -15,16 +15,18 @@ dependencies = [
     "flask==3.0.3",
     "python-dotenv==1.0.1",
     "pyav==12.1.0",
-    "openai==1.33.0",
+    "openai==1.38.0",
     "argparse==1.4.0",
     "python-decouple==3.8",
     "emoji==2.12.1",
     "python_dotenv==1.0.1",
-    "python-decouple==3.8",
-    "faster_whisper==1.0.2",
-    "torch",
-    "transformers",
 ]
 
 [project.optional-dependencies]
-test = ["pytest==7.3.1"]
+test = [
+        "pytest==7.3.1",
+        "python-decouple==3.8",
+        "faster_whisper==1.0.2",
+        "torch",
+        "transformers",
+    ]

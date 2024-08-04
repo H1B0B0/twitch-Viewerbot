@@ -342,7 +342,7 @@ class ViewerBotGUI(customtkinter.CTk):
             app.run(debug=True, use_reloader=False)
 
         def open_browser():
-            self.browser = webbrowser.open('http://localhost:5000')
+            self.browser = webbrowser.open('http://127.0.0.1:5000')
 
         def open_link(dialog):
             self.browser = webbrowser.open('https://www.patreon.com/hibo/membership')
