@@ -146,7 +146,7 @@ class ViewerBotGUI(customtkinter.CTk):
             }
             response = requests.get('https://discord.com/api/users/@me', headers=headers)
             response.raise_for_status()
-            user_id = response.json()['id']  # Get the user's ID
+            user_id = response.json()['id']
             response = requests.get('https://discord.com/api/users/@me/guilds', headers=headers)
             response.raise_for_status()
             guilds = response.json()
