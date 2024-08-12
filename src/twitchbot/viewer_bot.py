@@ -153,25 +153,28 @@ class ViewerBot:
             proxy_data['url'] = self.get_url()
         current_url = proxy_data['url']
 
+        # Extraction du type de proxy et de l'adresse
         proxy_type, proxy_address = self.extract_proxy_type_and_address(proxy_data['proxy'])
         proxies = self.configure_proxies(proxy_type, proxy_address, proxy_data)
 
         try:
             if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                response = self.make_request_with_retry(current_url, proxies, headers, proxy_data['proxy'])
+                with requests.Session() as s:
+                    response = self.make_request_with_retry(s, current_url, proxies, headers, proxy_data['proxy'])
                 if response:
                     self.nb_requests += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
         except Exception as e:
-            logging.error(f"Error in open_url: {e}")
+            print(e)
+            pass
         finally:
             if self.stop_event:
                 self.active_threads -= 1
                 return
-            self.thread_semaphore.release()
+            self.thread_semaphore.release()  # Release the semaphore
             self.active_threads -= 1
-    
+
     def extract_proxy_type_and_address(self, proxy_string):
         if proxy_string.startswith("socks4://"):
             return "socks4", proxy_string.split("://")[1]
@@ -180,7 +183,27 @@ class ViewerBot:
         elif proxy_string.startswith("http://"):
             return "http", proxy_string.split("://")[1]
         else:
-            return "http", proxy_string
+            return "http", proxy_string  # Assume HTTP if no protocol is specified
+
+    def configure_proxies(self, proxy_type, proxy_address, proxy_data):
+        # Split the proxy address to extract IP, port, username, and password
+        parts = proxy_address.split(':')
+        ip = parts[0]
+        port = parts[1]
+        username = parts[2] if len(parts) > 2 else None
+        password = parts[3] if len(parts) > 3 else None
+
+        if username and password:
+            credentials = f"{username}:{password}@"
+        else:
+            credentials = ""
+
+        if proxy_type in ["socks4", "socks5"]:
+            return {"http": f"{proxy_type}://{credentials}{ip}:{port}",
+                    "https": f"{proxy_type}://{credentials}{ip}:{port}"}
+        else:  # Default to HTTP
+            return {"http": f"http://{credentials}{ip}:{port}",
+                    "https": f"http://{credentials}{ip}:{port}"}
     
     def configure_proxies(self, proxy_type, proxy_address, proxy_data):
         username = proxy_data.get('username')

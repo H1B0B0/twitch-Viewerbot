@@ -94,7 +94,7 @@ class ViewerBot:
         except:
             pass
         return url
-    
+
     def stop(self):
         console.print("[bold red]Bot has been stopped[/bold red]")        
         self.should_stop = True  # Set the flag to True
@@ -131,14 +131,8 @@ class ViewerBot:
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     # Configure proxies based on the type (HTTP, SOCKS4, SOCKS5)
-                    proxy_type, proxy_address = proxy_data['proxy']
-                    proxies = {}
-                    if proxy_type in ["socks4", "socks5"]:
-                        proxies["http"] = f"{proxy_type}://{proxy_address}"
-                        proxies["https"] = f"{proxy_type}://{proxy_address}"
-                    else:  # Default to HTTP
-                        proxies["http"] = f"http://{proxy_address}"
-                        proxies["https"] = f"http://{proxy_address}"
+                    proxy_type, proxy_address = self.extract_ip_port(proxy_data['proxy'])
+                    proxies = self.configure_proxies(proxy_type, proxy_address)
 
                     with requests.Session() as s:
                         s.head(current_url, proxies=proxies, headers=headers, timeout=10)
@@ -154,6 +148,26 @@ class ViewerBot:
 
         except (KeyboardInterrupt, SystemExit):
             self.should_stop = True
+
+    def configure_proxies(self, proxy_type, proxy_address):
+        # Split the proxy address to extract IP, port, username, and password
+        parts = proxy_address.split(':')
+        ip = parts[0]
+        port = parts[1]
+        username = parts[2] if len(parts) > 2 else None
+        password = parts[3] if len(parts) > 3 else None
+
+        if username and password:
+            credentials = f"{username}:{password}@"
+        else:
+            credentials = ""
+
+        if proxy_type in ["socks4", "socks5"]:
+            return {"http": f"{proxy_type}://{credentials}{ip}:{port}",
+                    "https": f"{proxy_type}://{credentials}{ip}:{port}"}
+        else:  # Default to HTTP
+            return {"http": f"http://{credentials}{ip}:{port}",
+                    "https": f"http://{credentials}{ip}:{port}"}
 
     def main(self):
         start = datetime.datetime.now()
