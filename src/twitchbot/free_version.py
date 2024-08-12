@@ -71,7 +71,7 @@ class ViewerBot:
                 except Exception as e:
                     print(f"Error fetching proxies: {e}")
                     return []
-
+    
     def extract_ip_port(self, proxy):
         # Extract IP:PORT from a proxy string and determine its type
         if proxy.startswith("socks4://"):
@@ -82,7 +82,7 @@ class ViewerBot:
             return ("http", proxy.split("://")[1])
         else:
             return ("http", proxy)  # Default
-
+    
     def get_url(self):
         url = ""
         try:
@@ -94,11 +94,11 @@ class ViewerBot:
         except:
             pass
         return url
-
+    
     def stop(self):
         console.print("[bold red]Bot has been stopped[/bold red]")        
-        self.should_stop = True  # Set the flag to True
-
+        self.should_stop = True # Set the flag to stop the bot
+    
     def update_display(self):
         with Live(console=console, refresh_per_second=10) as live:
             while True:
@@ -117,38 +117,38 @@ class ViewerBot:
                 live.update(table)
                 if self.should_stop:
                     sys.exit()
-
+    
     def open_url(self, proxy_data):
         self.active_threads += 1
         try:
             headers = {'User-Agent': ua.random}
             current_index = self.all_proxies.index(proxy_data)
-
+    
             if proxy_data['url'] == "":
                 proxy_data['url'] = self.get_url()
             current_url = proxy_data['url']
-
+    
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     # Configure proxies based on the type (HTTP, SOCKS4, SOCKS5)
-                    proxy_type, proxy_address = self.extract_ip_port(proxy_data['proxy'])
+                    proxy_type, proxy_address = proxy_data['proxy']
                     proxies = self.configure_proxies(proxy_type, proxy_address)
-
+    
                     with requests.Session() as s:
                         s.head(current_url, proxies=proxies, headers=headers, timeout=10)
                         self.request_count += 1
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
             except Exception as e:
-                # Handle specific exceptions if needed
+                # print(f"Error: {e}")
                 pass
             finally:
                 self.active_threads -= 1
                 self.thread_semaphore.release()  # Release the semaphore
-
+    
         except (KeyboardInterrupt, SystemExit):
             self.should_stop = True
-
+    
     def configure_proxies(self, proxy_type, proxy_address):
         # Split the proxy address to extract IP, port, username, and password
         parts = proxy_address.split(':')
@@ -156,12 +156,12 @@ class ViewerBot:
         port = parts[1]
         username = parts[2] if len(parts) > 2 else None
         password = parts[3] if len(parts) > 3 else None
-
+    
         if username and password:
             credentials = f"{username}:{password}@"
         else:
             credentials = ""
-
+    
         if proxy_type in ["socks4", "socks5"]:
             return {"http": f"{proxy_type}://{credentials}{ip}:{port}",
                     "https": f"{proxy_type}://{credentials}{ip}:{port}"}
