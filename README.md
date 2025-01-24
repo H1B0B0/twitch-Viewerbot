@@ -132,7 +132,7 @@ The `main()` function creates an instance of the `ViewerBotGUI` class and starts
 
 ## Interface
 
-![](images/logged_in.png) ![](images/login.png)
+![](images/logged_in.png)
 
 ## License
 
