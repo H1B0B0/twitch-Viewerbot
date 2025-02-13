@@ -1,4 +1,4 @@
-# Twitch Viewer Bot ( Currently outdated ) ( A new version is in developpement join the discord to have more information )
+# Twitch Viewer Bot ( Premium version is KO take the free version ) ( A new version is in developpement join the discord to have more information )
 
 This is a Python script for generating Twitch views using proxies. It is implemented as a GUI application with the help of the tkinter module.
 
