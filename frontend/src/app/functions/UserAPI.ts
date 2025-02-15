@@ -1,11 +1,7 @@
 import axios from "axios";
-import useSWR from "swr";
 import { User, RegisterData, LoginData } from "../types/User";
 
 const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
-
-export const fetcher = (url: string) =>
-  axios.get(url, { withCredentials: true }).then((res) => res.data);
 
 // Auth APIs
 export async function register(userData: RegisterData) {
@@ -58,12 +54,28 @@ export async function logout() {
 }
 
 // User APIs
-export function useGetProfile() {
-  return useSWR<User>(`${URL}/users/profile`, fetcher);
+export async function useGetProfile() {
+  try {
+    const response = await axios.get(`${URL}/users/profile`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get profile error:", error);
+    throw error;
+  }
 }
 
-export function useGetSubscription() {
-  return useSWR<User>(`${URL}/users/subscription`, fetcher);
+export async function useGetSubscription() {
+  try {
+    const response = await axios.get(`${URL}/users/subscription`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Get subscription error:", error);
+    throw error;
+  }
 }
 
 export async function registerHWID(hwid: string) {

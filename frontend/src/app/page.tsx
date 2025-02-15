@@ -1,101 +1,215 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Input,
+  Button,
+  Slider,
+  Divider,
+  Progress,
+  Checkbox,
+  ButtonGroup,
+} from "@heroui/react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { StatCard } from "../components/StatCard";
+import { useGetProfile } from "./functions/UserAPI";
 
-export default function Home() {
+export default function ViewerBotInterface() {
+  const { data: profile } = useGetProfile();
+  const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState({
+    totalProxies: 0,
+    aliveProxies: 0,
+    activeThreads: 0,
+    requests: 0,
+    viewers: 0,
+    targetViewers: 0,
+  });
+  const [config, setConfig] = useState({
+    threads: 1,
+    channelName: "",
+    gameName: "",
+    messagesPerMinute: 1,
+    enableChat: false,
+    proxyType: "http",
+    timeout: 1000,
+  });
+
+  const handleStart = async () => {
+    setIsLoading(true);
+    try {
+      // API call logic here
+      toast.success("Bot started successfully!");
+    } catch (error) {
+      toast.error("Failed to start bot");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2">Twitch Viewer Bot</h1>
+          <p className="text-gray-500">
+            {profile
+              ? `Welcome back, ${profile.username}`
+              : "Monitor and control your viewer bot"}
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Monitoring Section - Moved to top */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-2xl font-semibold">Live Monitoring</h2>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Current Viewers"
+                value={stats.viewers}
+                total={stats.targetViewers}
+              />
+              <StatCard
+                title="Active Threads"
+                value={stats.activeThreads}
+                total={config.threads}
+              />
+              <StatCard
+                title="Proxies"
+                value={stats.aliveProxies}
+                total={stats.totalProxies}
+              />
+              <StatCard title="Requests" value={stats.requests} increment />
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Control Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Basic Configuration */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-2xl font-semibold">Basic Configuration</h2>
+            </CardHeader>
+            <CardBody className="space-y-6">
+              <Input
+                label="Channel Name"
+                value={config.channelName}
+                onChange={(e) =>
+                  setConfig({ ...config, channelName: e.target.value })
+                }
+              />
+              <Input
+                label="Game Name"
+                value={config.gameName}
+                onChange={(e) =>
+                  setConfig({ ...config, gameName: e.target.value })
+                }
+              />
+              <Input
+                type="number"
+                label="Number of Threads"
+                value={config.threads.toString()}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    threads: parseInt(e.target.value),
+                  })
+                }
+              />
+            </CardBody>
+          </Card>
+
+          {/* Advanced Settings */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-2xl font-semibold">Advanced Settings</h2>
+            </CardHeader>
+            <CardBody className="space-y-6">
+              <div className="relative">
+                <Slider
+                  value={[1]}
+                  defaultValue={[1]}
+                  maxValue={60}
+                  isDisabled={true}
+                  label="Messages Per Minute"
+                  getValue={(value) => `${value} messages`}
+                  step={1}
+                />
+                <span className="absolute right-0 top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded">
+                  Coming Soon Premium Feature
+                </span>
+              </div>
+
+              <div>
+                <Slider
+                  value={[config.timeout]}
+                  defaultValue={[1000]}
+                  maxValue={10000}
+                  onChange={(value) =>
+                    setConfig({
+                      ...config,
+                      timeout: Number(Array.isArray(value) ? value[0] : value),
+                    })
+                  }
+                  getValue={(timeout) => `${timeout}ms`}
+                  label="Request Timeout"
+                  step={100}
+                />
+              </div>
+
+              <div className="relative">
+                <Checkbox checked={false} isDisabled={true}>
+                  <span className="text-gray-400">Enable Chat Messages</span>
+                </Checkbox>
+                <span className="absolute right-0 top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded">
+                  Coming Soon Premium Feature
+                </span>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Proxy Type
+                </label>
+                <ButtonGroup>
+                  {["http", "socks4", "socks5", "all"].map((type) => (
+                    <Button
+                      key={type}
+                      variant={config.proxyType === type ? "solid" : "bordered"}
+                      onPress={() => setConfig({ ...config, proxyType: type })}
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Action Button */}
+        <Card>
+          <CardBody className="py-6">
+            <Button
+              variant="solid"
+              color="primary"
+              size="lg"
+              fullWidth
+              isLoading={isLoading}
+              onPress={handleStart}
+            >
+              {isLoading ? "Running..." : "Start Bot"}
+            </Button>
+          </CardBody>
+        </Card>
+      </div>
+      <ToastContainer />
     </div>
   );
 }
