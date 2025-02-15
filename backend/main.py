@@ -1,0 +1,129 @@
+from flask import Flask, send_from_directory, current_app, send_file, request, redirect, abort
+from flask_cors import CORS
+from functools import wraps
+import os
+import logging
+import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import webbrowser
+
+# Load environment variables from .env file
+load_dotenv()
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Check for JWT_SECRET in environment variables
+JWT_SECRET = os.getenv('JWT_SECRET')
+if not JWT_SECRET:
+    logger.error("JWT_SECRET not found in environment variables")
+    raise ValueError("JWT_SECRET must be set in environment variables")
+
+app = Flask(__name__, static_folder='static')
+app.config['JWT_SECRET'] = JWT_SECRET
+CORS(app, 
+     supports_credentials=True,
+     resources={
+         r"/*": {
+             "origins": ["http://localhost:3000", "http://localhost:3001"],
+             "methods": ["GET", "POST", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization"],
+             "expose_headers": ["Set-Cookie"],
+             "supports_credentials": True,
+             "credentials": True,
+             "allow_credentials": True
+         }
+     })
+
+def verify_token(token):
+    try:
+        jwt.decode(token, app.config['JWT_SECRET'], algorithms=["HS256"])
+        return True
+    except jwt.InvalidTokenError as e:
+        logger.error(f"Token verification failed: {e}")
+        return False
+
+def auth_middleware(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        path = request.path
+        logger.info(f"Current path: {path}")
+        
+        # Skip middleware for API routes and static files
+        if path.startswith(('/api/', '/_next/', '/static/', '/images/')) or \
+           path.endswith(('.js', '.css', '.ico', '.png', '.jpg', '.jpeg', '.gif')):
+            return f(*args, **kwargs)
+        
+        # Define public paths (including their HTML versions)
+        public_paths = ['/login', '/register', '/login.html', '/register.html']
+        is_public = path in public_paths
+        
+        # Get token from cookies
+        token = request.cookies.get('access_token')
+        is_authenticated = token and verify_token(token)
+        
+        logger.info(f"Auth status: {is_authenticated}")
+        
+        # Redirect logic
+        if not is_public and not is_authenticated:
+            logger.info("Redirecting to login")
+            return redirect('/login')
+            
+        if is_public and is_authenticated and path not in ['/api/register', '/api/login']:
+            logger.info("Redirecting")
+            return redirect('/')
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+@auth_middleware
+def serve_files(path):
+    logger.info(f"Request for path: {path}")
+    
+    try:
+        # Remove .html extension if present
+        if path.endswith('.html'):
+            path = path[:-5]
+            
+        # Check for static file
+        file_path = os.path.join(app.static_folder, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_file(file_path)
+            
+        # Try with .html extension for static files
+        html_path = os.path.join(app.static_folder, f"{path}.html")
+        if os.path.exists(html_path) and os.path.isfile(html_path):
+            return send_file(html_path)
+            
+        # For all other paths, return index.html
+        return send_file(os.path.join(app.static_folder, 'index.html'))
+            
+    except Exception as e:
+        logger.error(f"Error serving file: {e}")
+        abort(404)
+
+# Ajoutez ces headers à toutes les réponses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+# Ajoutez cette fonction avant le if __name__ == '__main__':
+def open_browser():
+    print("Opening browser...")
+    # webbrowser.open('http://localhost:3001')
+
+if __name__ == '__main__':
+    logger.info(f"Static folder path: {os.path.abspath(app.static_folder)}")
+    if not os.path.exists(app.static_folder):
+        logger.error(f"Static folder not found: {app.static_folder}")
+        exit(1)
+    
+    # Lancer le navigateur après un court délai
+    from threading import Timer
+    Timer(1.5, open_browser).start()
+    
+    app.run(debug=True, host='0.0.0.0', port=3001)
