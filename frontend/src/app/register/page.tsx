@@ -29,6 +29,7 @@ export default function RegisterPage() {
 
     const registerData: RegisterData = {
       username: formData.get("username") as string,
+      TwitchUsername: formData.get("twitch username") as string,
       email: formData.get("email") as string,
       password: password,
     };
@@ -83,6 +84,14 @@ export default function RegisterPage() {
             </div>
             <div>
               <Input type="email" name="email" label="Email" required />
+            </div>
+            <div>
+              <Input
+                type="text"
+                name="twitch username"
+                label="Twitch Username"
+                required
+              />
             </div>
             <div>
               <Input

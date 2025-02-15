@@ -13,17 +13,28 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { StatCard } from "../components/StatCard";
-import { useGetProfile } from "./functions/UserAPI";
+import { useGetProfile, logout } from "./functions/UserAPI";
+import { useRouter } from "next/navigation";
+import { useViewerCount } from "../hooks/useViewerCount";
+import { ViewerStatCard } from "../components/ViewerStatCard";
 
 export default function ViewerBotInterface() {
+  const router = useRouter();
   const { data: profile } = useGetProfile();
+  const { viewerCount: currentViewers, previousCount } = useViewerCount(
+    profile?.user?.TwitchUsername
+  );
+
+  console.log("currentViewers", currentViewers);
+  console.log("profile", profile);
+
   const [isLoading, setIsLoading] = useState(false);
   const [stats] = useState({
     totalProxies: 0,
     aliveProxies: 0,
     activeThreads: 0,
     requests: 0,
-    viewers: 0,
+    viewers: currentViewers, // Utilisé maintenant la valeur en direct
     targetViewers: 0,
   });
   const [config, setConfig] = useState({
@@ -48,11 +59,31 @@ export default function ViewerBotInterface() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully!");
+      router.push("/login");
+    } catch {
+      toast.error("Failed to logout");
+    }
+  };
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center mb-8 bg-background/60 backdrop-blur-3xl p-8 rounded-2xl border border-default-200">
+        {/* Header with Logout */}
+        <div className="relative text-center mb-8 bg-background/60 backdrop-blur-3xl p-8 rounded-2xl border border-default-200">
+          {profile && (
+            <Button
+              variant="bordered"
+              onPress={handleLogout}
+              className="absolute right-4 top-4"
+              color="danger"
+            >
+              Logout
+            </Button>
+          )}
           <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             Twitch Viewer Bot
           </h1>
@@ -70,10 +101,9 @@ export default function ViewerBotInterface() {
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard
-                title="Current Viewers"
-                value={stats.viewers}
-                total={stats.targetViewers}
+              <ViewerStatCard
+                value={currentViewers}
+                previousValue={previousCount}
               />
               <StatCard
                 title="Active Threads"
