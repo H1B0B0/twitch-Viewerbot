@@ -1,7 +1,13 @@
 import axios from "axios";
-import { User, RegisterData, LoginData } from "../types/User";
+import { RegisterData, LoginData } from "../types/User";
+import useSWR from "swr";
 
 const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
+
+const fetcher = async (url: string) => {
+  const response = await axios.get(url, { withCredentials: true });
+  return response.data;
+};
 
 // Auth APIs
 export async function register(userData: RegisterData) {
@@ -54,16 +60,8 @@ export async function logout() {
 }
 
 // User APIs
-export async function useGetProfile() {
-  try {
-    const response = await axios.get(`${URL}/users/profile`, {
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Get profile error:", error);
-    throw error;
-  }
+export function useGetProfile() {
+  return useSWR(`${URL}/users/profile`, fetcher);
 }
 
 export async function useGetSubscription() {

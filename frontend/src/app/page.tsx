@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -7,8 +7,6 @@ import {
   Input,
   Button,
   Slider,
-  Divider,
-  Progress,
   Checkbox,
   ButtonGroup,
 } from "@heroui/react";
@@ -20,7 +18,7 @@ import { useGetProfile } from "./functions/UserAPI";
 export default function ViewerBotInterface() {
   const { data: profile } = useGetProfile();
   const [isLoading, setIsLoading] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalProxies: 0,
     aliveProxies: 0,
     activeThreads: 0,
@@ -43,7 +41,7 @@ export default function ViewerBotInterface() {
     try {
       // API call logic here
       toast.success("Bot started successfully!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to start bot");
     } finally {
       setIsLoading(false);
@@ -54,11 +52,13 @@ export default function ViewerBotInterface() {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">Twitch Viewer Bot</h1>
-          <p className="text-gray-500">
+        <div className="text-center mb-8 bg-background/60 backdrop-blur-3xl p-8 rounded-2xl border border-default-200">
+          <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Twitch Viewer Bot
+          </h1>
+          <p className="text-xl font-medium">
             {profile
-              ? `Welcome back, ${profile.username}`
+              ? `Welcome back, ${profile.user.username}`
               : "Monitor and control your viewer bot"}
           </p>
         </div>
