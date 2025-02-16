@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -17,26 +17,11 @@ import { useGetProfile, logout } from "./functions/UserAPI";
 import { useRouter } from "next/navigation";
 import { useViewerCount } from "../hooks/useViewerCount";
 import { ViewerStatCard } from "../components/ViewerStatCard";
+import { startBot, stopBot, getBotStats } from "./functions/BotAPI";
 
 export default function ViewerBotInterface() {
   const router = useRouter();
   const { data: profile } = useGetProfile();
-  const { viewerCount: currentViewers, previousCount } = useViewerCount(
-    profile?.user?.TwitchUsername
-  );
-
-  console.log("currentViewers", currentViewers);
-  console.log("profile", profile);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [stats] = useState({
-    totalProxies: 0,
-    aliveProxies: 0,
-    activeThreads: 0,
-    requests: 0,
-    viewers: currentViewers, // Utilisé maintenant la valeur en direct
-    targetViewers: 0,
-  });
   const [config, setConfig] = useState({
     threads: 1,
     channelName: "",
@@ -46,16 +31,105 @@ export default function ViewerBotInterface() {
     proxyType: "http",
     timeout: 1000,
   });
+  const { viewerCount: currentViewers, previousCount } = useViewerCount(
+    // Use channelName from config if it doesn't match the profile's TwitchUsername
+    config?.channelName || profile?.user?.TwitchUsername
+  );
+
+  console.log("currentViewers", currentViewers);
+  console.log("profile", profile);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [proxyFile, setProxyFile] = useState<File | null>(null);
+  const [stats, setStats] = useState({
+    totalProxies: 0,
+    aliveProxies: 0,
+    activeThreads: 0,
+    requests: 0,
+    viewers: currentViewers, // Utilisé maintenant la valeur en direct
+    targetViewers: 0,
+    total_requests: 0,
+  });
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (isLoading) {
+      intervalId = setInterval(async () => {
+        try {
+          const stats = await getBotStats();
+          setStats((prevStats) => ({
+            ...prevStats,
+            activeThreads: stats.active_threads,
+            totalProxies: stats.total_proxies,
+            aliveProxies: stats.alive_proxies,
+            total_requests: stats.total_requests,
+          }));
+
+          // If active threads drops to 0, consider the bot stopped
+          if (stats.active_threads === 0 && isLoading) {
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Failed to fetch stats:", error);
+        }
+      }, 1000);
+    }
+
+    // Cleanup interval on unmount or when isLoading changes
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isLoading]);
+
+  useEffect(() => {
+    // If profile loads and channel name is empty, set it to TwitchUsername
+    if (profile?.user?.TwitchUsername && !config.channelName) {
+      setConfig((prev) => ({
+        ...prev,
+        channelName: profile.user.TwitchUsername,
+      }));
+    }
+  }, [profile]);
 
   const handleStart = async () => {
-    setIsLoading(true);
     try {
-      // API call logic here
+      setIsLoading(true); // Set loading before starting
+      await startBot({
+        channelName: config.channelName,
+        threads: config.threads,
+        proxyFile: proxyFile || undefined,
+        timeout: config.timeout,
+        proxyType: config.proxyType,
+      });
       toast.success("Bot started successfully!");
-    } catch {
-      toast.error("Failed to start bot");
-    } finally {
+    } catch (err) {
+      toast.error(
+        `Failed to start bot: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+      setIsLoading(false); // Reset loading on error
+    }
+  };
+
+  const handleStop = async () => {
+    try {
+      await stopBot();
+      toast.success("Bot stopped successfully!");
       setIsLoading(false);
+      // Reset stats when stopping
+      setStats((prevStats) => ({
+        ...prevStats,
+        activeThreads: 0,
+        requests: 0,
+      }));
+    } catch (err) {
+      toast.error("Failed to stop bot");
+      console.error("Failed to stop bot:", err);
+      // Keep isLoading true if stop fails
     }
   };
 
@@ -111,11 +185,11 @@ export default function ViewerBotInterface() {
                 total={config.threads}
               />
               <StatCard
-                title="Proxies"
+                title="Alive Proxies"
                 value={stats.aliveProxies}
                 total={stats.totalProxies}
               />
-              <StatCard title="Requests" value={stats.requests} increment />
+              <StatCard title="Requests" value={stats.total_requests} />
             </div>
           </CardBody>
         </Card>
@@ -131,6 +205,9 @@ export default function ViewerBotInterface() {
               <Input
                 label="Channel Name"
                 value={config.channelName}
+                placeholder={
+                  profile?.user?.TwitchUsername || "Enter channel name"
+                }
                 onChange={(e) =>
                   setConfig({ ...config, channelName: e.target.value })
                 }
@@ -153,6 +230,20 @@ export default function ViewerBotInterface() {
                   })
                 }
               />
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">
+                  Proxy List (Optional)
+                </label>
+                <Input
+                  type="file"
+                  accept=".txt"
+                  onChange={(e) => setProxyFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-gray-500">
+                  Upload a .txt file with proxies or let the bot scrape them
+                  automatically
+                </p>
+              </div>
             </CardBody>
           </Card>
 
@@ -180,7 +271,7 @@ export default function ViewerBotInterface() {
               <div>
                 <Slider
                   value={[config.timeout]}
-                  defaultValue={[1000]}
+                  defaultValue={[10000]}
                   maxValue={10000}
                   onChange={(value) =>
                     setConfig({
@@ -228,13 +319,12 @@ export default function ViewerBotInterface() {
           <CardBody className="py-6">
             <Button
               variant="solid"
-              color="primary"
+              color={isLoading ? "danger" : "primary"}
               size="lg"
               fullWidth
-              isLoading={isLoading}
-              onPress={handleStart}
+              onPress={isLoading ? handleStop : handleStart}
             >
-              {isLoading ? "Running..." : "Start Bot"}
+              {isLoading ? "Stop Bot" : "Start Bot"}
             </Button>
           </CardBody>
         </Card>

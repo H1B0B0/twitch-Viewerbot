@@ -7,6 +7,10 @@ import jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import webbrowser
+from api import api  # Import the API blueprint
+
+# Set urllib3's logger level to WARNING
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,19 +26,20 @@ if not JWT_SECRET:
 
 app = Flask(__name__, static_folder='static')
 app.config['JWT_SECRET'] = JWT_SECRET
+
+# Simplified CORS configuration
 CORS(app, 
-     supports_credentials=True,
      resources={
          r"/*": {
              "origins": ["http://localhost:3000", "http://localhost:3001"],
              "methods": ["GET", "POST", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization"],
-             "expose_headers": ["Set-Cookie"],
-             "supports_credentials": True,
-             "credentials": True,
-             "allow_credentials": True
+             "expose_headers": ["Set-Cookie"]
          }
      })
+
+# Register the API blueprint
+app.register_blueprint(api, url_prefix='/api')
 
 def verify_token(token):
     try:
@@ -108,6 +113,9 @@ def serve_files(path):
 # Ajoutez ces headers à toutes les réponses
 @app.after_request
 def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
@@ -117,6 +125,11 @@ def open_browser():
     # webbrowser.open('http://localhost:3001')
 
 if __name__ == '__main__':
+    # Create uploads directory if it doesn't exist
+    uploads_dir = os.path.join(os.path.dirname(app.instance_path), 'uploads')
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir)
+        
     logger.info(f"Static folder path: {os.path.abspath(app.static_folder)}")
     if not os.path.exists(app.static_folder):
         logger.error(f"Static folder not found: {app.static_folder}")

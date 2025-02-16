@@ -13,10 +13,8 @@ type EmberParticleProps = {
 };
 
 function EmberParticle({ trend, delay = 0 }: EmberParticleProps) {
-  // On utilise un "seed" pour forcer le recalcul des valeurs aléatoires à chaque cycle.
   const [randomSeed, setRandomSeed] = useState(Math.random());
 
-  // Ces valeurs seront générées une seule fois par cycle d'animation
   const randomValues = useMemo(
     () => ({
       initialX: Math.random() * 80 - 40,
@@ -26,7 +24,7 @@ function EmberParticle({ trend, delay = 0 }: EmberParticleProps) {
       randomSize: Math.random() * 3 + 2, // taille entre 2 et 5px
       randomBorderRadius: Math.random() * 10 + 2, // forme moins arrondie
     }),
-    [randomSeed]
+    [] // Removed randomSeed from dependencies as it's not needed
   );
 
   return (

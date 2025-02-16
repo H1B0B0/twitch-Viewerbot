@@ -27,7 +27,7 @@ export function useViewerCount(username: string | undefined) {
       console.log(`⏹️ Stopping viewer count polling for ${username}`);
       clearInterval(interval);
     };
-  }, [username]);
+  }, [username, viewerCount]);
 
   return { viewerCount, previousCount, lastUpdate };
 }

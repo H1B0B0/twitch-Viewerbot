@@ -1,12 +1,3 @@
-const TWITCH_API = "https://api.twitch.tv/helix";
-const CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
-
-interface TwitchStream {
-  viewer_count: number;
-  user_login: string;
-  started_at: string;
-}
-
 export async function getViewerCount(username: string): Promise<number> {
   if (!username) {
     console.log("No username provided for viewer count fetch");

@@ -14,12 +14,15 @@ dependencies = [
     "rich==13.7",
     "flask==3.0.3",
     "python-dotenv==1.0.1",
-    "pyav==12.1.0",
     "openai==1.38.0",
     "argparse==1.4.0",
     "python-decouple==3.8",
     "emoji==2.12.1",
     "python_dotenv==1.0.1",
+    "aiohttp>=3.8.0",
+    "asgiref>=3.7.0",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]
