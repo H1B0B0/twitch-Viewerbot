@@ -30,6 +30,7 @@ class BotManager:
             'alive_proxies': 0
         }
         self.is_running = False
+        self.last_channel = None  # Ajouter cette ligne
 
     def start_bot(self, channel_name, threads, proxy_file=None, timeout=1000, proxy_type="http"):
         if self.is_running:
@@ -51,6 +52,7 @@ class BotManager:
         self.bot_thread = Thread(target=run_bot)
         self.bot_thread.daemon = True
         self.bot_thread.start()
+        self.last_channel = channel_name  # Sauvegarder le nom du canal
         return True
 
     def stop_bot(self):
@@ -62,10 +64,19 @@ class BotManager:
 
     def get_stats(self):
         if self.bot:
-            self.stats['requests'] = self.bot.nb_requests
-            self.stats['active_threads'] = self.bot.active_threads
-            self.stats['total_proxies'] = len(self.bot.all_proxies)
-            self.stats['alive_proxies'] = sum(1 for p in self.bot.all_proxies if time.time() - p['time'] < 10)
+            return {
+                'requests': self.bot.request_count,
+                'active_threads': self.bot.active_threads,
+                'total_proxies': len(self.bot.all_proxies),
+                'alive_proxies': self.stats['alive_proxies'],
+                'is_running': self.is_running,
+                'channel_name': self.last_channel,
+                'config': {
+                    'threads': self.bot.nb_of_threads,
+                    'timeout': self.bot.timeout,
+                    'proxy_type': self.bot.type_of_proxy,
+                }
+            }
         return self.stats
 
 bot_manager = BotManager()
@@ -121,7 +132,10 @@ def get_stats():
         'active_threads': stats['active_threads'],
         'total_proxies': stats['total_proxies'],
         'alive_proxies': stats['alive_proxies'],
-        'requests': stats['requests']
+        'request_count': stats['requests'],
+        'is_running': stats.get('is_running', False),
+        'channel_name': stats.get('channel_name', None),
+        'config': stats.get('config', {})
     })
 
 @bot_api.after_request

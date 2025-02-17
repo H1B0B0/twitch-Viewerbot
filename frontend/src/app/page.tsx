@@ -45,10 +45,9 @@ export default function ViewerBotInterface() {
     totalProxies: 0,
     aliveProxies: 0,
     activeThreads: 0,
-    requests: 0,
+    request_count: 0,
     viewers: currentViewers, // Utilisé maintenant la valeur en direct
     targetViewers: 0,
-    total_requests: 0,
   });
 
   useEffect(() => {
@@ -63,7 +62,7 @@ export default function ViewerBotInterface() {
             activeThreads: stats.active_threads,
             totalProxies: stats.total_proxies,
             aliveProxies: stats.alive_proxies,
-            total_requests: stats.total_requests,
+            request_count: stats.request_count,
           }));
 
           // If active threads drops to 0, consider the bot stopped
@@ -92,7 +91,45 @@ export default function ViewerBotInterface() {
         channelName: profile.user.TwitchUsername,
       }));
     }
-  }, [profile]);
+  }, [profile, config.channelName]); // Ajout de config.channelName dans les dépendances
+
+  // Modifier la vérification initiale de l'état du bot
+  useEffect(() => {
+    const checkBotStatus = async () => {
+      try {
+        const stats = await getBotStats();
+        // Si le bot a des threads actifs, il est en cours d'exécution
+        if (stats.active_threads > 0 || stats.is_running) {
+          setIsLoading(true);
+          // Mettre à jour les stats
+          setStats((prevStats) => ({
+            ...prevStats,
+            activeThreads: stats.active_threads,
+            totalProxies: stats.total_proxies,
+            aliveProxies: stats.alive_proxies,
+            request_count: stats.request_count,
+          }));
+
+          // Restaurer la configuration du bot si elle existe
+          if (stats.config) {
+            const { threads, timeout, proxy_type } = stats.config;
+            setConfig((prevConfig) => ({
+              ...prevConfig,
+              threads: threads ?? prevConfig.threads,
+              timeout: timeout ?? prevConfig.timeout,
+              proxyType: proxy_type ?? prevConfig.proxyType,
+              channelName: stats.channel_name || prevConfig.channelName,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check bot status:", error);
+      }
+    };
+
+    // Vérifier l'état du bot au chargement de la page
+    checkBotStatus();
+  }, []); // Exécuter une seule fois au montage
 
   const handleStart = async () => {
     try {
@@ -147,7 +184,7 @@ export default function ViewerBotInterface() {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header with Logout */}
-        <div className="relative text-center mb-8 bg-background/60 backdrop-blur-3xl p-8 rounded-2xl border border-default-200">
+        <Card className="relative text-center mb-8 p-8 rounded-2xl border border-default-200">
           {profile && (
             <Button
               variant="bordered"
@@ -166,7 +203,7 @@ export default function ViewerBotInterface() {
               ? `Welcome back, ${profile.user.username}`
               : "Monitor and control your viewer bot"}
           </p>
-        </div>
+        </Card>
 
         {/* Monitoring Section - Moved to top */}
         <Card>
@@ -185,11 +222,11 @@ export default function ViewerBotInterface() {
                 total={config.threads}
               />
               <StatCard
-                title="Alive Proxies"
-                value={stats.aliveProxies}
+                title="Proxies"
+                value={stats.totalProxies}
                 total={stats.totalProxies}
               />
-              <StatCard title="Requests" value={stats.total_requests} />
+              <StatCard title="Requests" value={stats.request_count} />
             </div>
           </CardBody>
         </Card>
@@ -213,13 +250,6 @@ export default function ViewerBotInterface() {
                 }
               />
               <Input
-                label="Game Name"
-                value={config.gameName}
-                onChange={(e) =>
-                  setConfig({ ...config, gameName: e.target.value })
-                }
-              />
-              <Input
                 type="number"
                 label="Number of Threads"
                 value={config.threads.toString()}
@@ -230,6 +260,22 @@ export default function ViewerBotInterface() {
                   })
                 }
               />
+              <div>
+                <Slider
+                  value={[config.timeout]}
+                  defaultValue={[10000]}
+                  maxValue={10000}
+                  onChange={(value) =>
+                    setConfig({
+                      ...config,
+                      timeout: Number(Array.isArray(value) ? value[0] : value),
+                    })
+                  }
+                  getValue={(timeout) => `${timeout}ms`}
+                  label="Request Timeout"
+                  step={100}
+                />
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium block">
                   Proxy List (Optional)
@@ -254,6 +300,19 @@ export default function ViewerBotInterface() {
             </CardHeader>
             <CardBody className="space-y-6">
               <div className="relative">
+                <Input
+                  label="Game Name"
+                  value={config.gameName}
+                  onChange={(e) =>
+                    setConfig({ ...config, gameName: e.target.value })
+                  }
+                  isDisabled={true}
+                />
+                <span className="absolute right-0 top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded">
+                  Coming Soon Premium Feature
+                </span>
+              </div>
+              <div className="relative">
                 <Slider
                   value={[1]}
                   defaultValue={[1]}
@@ -266,23 +325,6 @@ export default function ViewerBotInterface() {
                 <span className="absolute right-0 top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded">
                   Coming Soon Premium Feature
                 </span>
-              </div>
-
-              <div>
-                <Slider
-                  value={[config.timeout]}
-                  defaultValue={[10000]}
-                  maxValue={10000}
-                  onChange={(value) =>
-                    setConfig({
-                      ...config,
-                      timeout: Number(Array.isArray(value) ? value[0] : value),
-                    })
-                  }
-                  getValue={(timeout) => `${timeout}ms`}
-                  label="Request Timeout"
-                  step={100}
-                />
               </div>
 
               <div className="relative">

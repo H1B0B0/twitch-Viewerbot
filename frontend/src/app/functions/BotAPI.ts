@@ -3,11 +3,17 @@ import axios from "axios";
 const BASE_URL = "http://localhost:3001/api";
 
 export interface BotStats {
-  requests: number;
+  request_count: number;
   active_threads: number;
   total_proxies: number;
   alive_proxies: number;
-  total_requests: number;
+  is_running: boolean;
+  channel_name: string | null;
+  config?: {
+    threads: number;
+    timeout: number;
+    proxy_type: string;
+  };
 }
 
 export interface BotConfig {
@@ -55,6 +61,7 @@ export async function stopBot() {
 export async function getBotStats() {
   try {
     const response = await axios.get<BotStats>(`${BASE_URL}/bot/stats`);
+    console.log("Bot stats:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching bot stats:", error);

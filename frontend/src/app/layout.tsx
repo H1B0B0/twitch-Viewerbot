@@ -3,6 +3,8 @@ import "react-toastify/dist/ReactToastify.css";
 import ThemeProvider from "../components/ThemeProvider";
 import ThemeSwitcher from "../components/ThemeSwitcher";
 import Spline from "@splinetool/react-spline";
+import ApiHealthProvider from "../components/ApiHealthProvider";
+import UpdateProvider from "../components/UpdateProvider";
 
 export default function RootLayout({
   children,
@@ -20,9 +22,10 @@ export default function RootLayout({
             />
           </div>
           <main className="w-full relative z-10">
-            <div>{children}</div>
+            <ApiHealthProvider>{children}</ApiHealthProvider>
           </main>
           <ThemeSwitcher />
+          <UpdateProvider />
         </ThemeProvider>
       </body>
     </html>

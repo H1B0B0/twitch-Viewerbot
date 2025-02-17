@@ -46,7 +46,7 @@ class ViewerBot:
         self.proxy_file = proxy_file
         self.nb_of_threads = int(nb_of_threads)
         self.channel_name = channel_name
-        self.nb_requests = 0  # Total requests
+        self.request_count = 0  # Total requests
         self.all_proxies = []
         self.processes = []
         self.proxyrefreshed = False
@@ -66,33 +66,6 @@ class ViewerBot:
         print(f"Proxy file: {self.proxy_file}")
         print(f"Number of threads: {self.nb_of_threads}")
         print(f"Channel name: {self.channel_name}")
-
-        # Configure connection pooling
-        self.pool_connections = min(100, max(nb_of_threads, 10))  # Scale with thread count, min 10, max 100
-        self.pool_maxsize = min(100, max(nb_of_threads, 10))     # Same as connections
-        
-        # Configure retries with more specific settings
-        self.retry_strategy = Retry(
-            total=3,
-            backoff_factor=0.5,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "OPTIONS"],
-            raise_on_redirect=False,
-            raise_on_status=False,
-            connect=3,
-            read=3
-        )
-        
-        # Create a session with proper pooling
-        self.session = requests.Session()
-        adapter = HTTPAdapter(
-            pool_connections=self.pool_connections,
-            pool_maxsize=self.pool_maxsize,
-            max_retries=self.retry_strategy,
-            pool_block=False  # Don't block when pool is full
-        )
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
 
     def get_proxies(self):
         # Fetch proxies from an API or use the provided proxy list
@@ -138,111 +111,85 @@ class ViewerBot:
         self.should_stop = True # Set the flag to stop the bot
         self.active_threads = 0  # Reset active threads count
         self.all_proxies = []  # Clear proxies list
-        self.session.close()  # Properly close the session when stopping
+        self.should_stop = True  # Reset the flag
     
-    def update_display(self):
-        with Live(console=console, refresh_per_second=10) as live:
-            while True:
-                table = Table(show_header=False, show_edge=False)
-                table.add_column(justify="right")
-                table.add_column(justify="left")
+    # def update_display(self):
+    #     with Live(console=console, refresh_per_second=10) as live:
+    #         while True:
+    #             table = Table(show_header=False, show_edge=False)
+    #             table.add_column(justify="right")
+    #             table.add_column(justify="left")
                 
-                text = Text(f"Number of requests sent: {self.nb_requests}")
-                text.stylize("bold magenta")
-                table.add_row(text, Spinner("aesthetic"))
+    #             text = Text(f"Number of requests sent: {self.request_count}")
+    #             text.stylize("bold magenta")
+    #             table.add_row(text, Spinner("aesthetic"))
                 
-                active_threads_text = Text(f"Active threads: {self.active_threads}")
-                active_threads_text.stylize("bold cyan")  # add style to the active threads text
-                table.add_row(active_threads_text, Spinner("aesthetic"))  # display the number of active threads
+    #             active_threads_text = Text(f"Active threads: {self.active_threads}")
+    #             active_threads_text.stylize("bold cyan")  # add style to the active threads text
+    #             table.add_row(active_threads_text, Spinner("aesthetic"))  # display the number of active threads
                 
-                live.update(table)
-                if self.should_stop:
-                    sys.exit()
+    #             live.update(table)
+    #             if self.should_stop:
+    #                 sys.exit()
     
     def open_url(self, proxy_data):
         self.active_threads += 1
         try:
-            headers = {
-                'User-Agent': ua.random,
-                'Accept': '*/*',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive'
-            }
+            headers = {'User-Agent': ua.random}
             current_index = self.all_proxies.index(proxy_data)
 
             if proxy_data['url'] == "":
                 proxy_data['url'] = self.get_url()
             current_url = proxy_data['url']
-            
             try:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
-                    current_proxy = {
-                        "http": proxy_data['proxy'],
-                        "https": proxy_data['proxy']
-                    }
-                    
-                    # Use head request with specific options
-                    response = self.session.head(
-                        current_url,
-                        proxies=current_proxy,
-                        headers=headers,
-                        timeout=self.timeout,
-                        allow_redirects=False,
-                        verify=False  # Disable SSL verification for proxies
-                    )
-                    
-                    if response.status_code == 200:
-                        self.nb_requests += 1
-                        self.requests_in_current_second += 1
-                        proxy_data['time'] = time.time()
-                        self.all_proxies[current_index] = proxy_data
-                    
-            except requests.exceptions.RequestException:
-                # Remove failed proxy from the list
-                if proxy_data in self.all_proxies:
-                    self.all_proxies.remove(proxy_data)
+                    current_proxy = {"http": proxy_data['proxy'], "https": proxy_data['proxy']}
+                    with requests.Session() as s:
+                        s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
+                        self.request_count += 1
+                    proxy_data['time'] = time.time()
+                    self.all_proxies[current_index] = proxy_data
+            except:
+                pass
             finally:
                 self.active_threads -= 1
-                self.thread_semaphore.release()
-        
-        except (KeyboardInterrupt, SystemExit):
+                self.thread_semaphore.release()  # Release the semaphore
+
+        except (KeyboardInterrupt):
             self.should_stop = True
 
     def main(self):
         start = datetime.datetime.now()
         proxies = self.get_proxies()
-
-        # Start a separate thread for updating the display
-        self.display_thread = Thread(target=self.update_display)
-        self.display_thread.daemon = True
-        self.display_thread.start()
         
-        while not self.should_stop:  # Changed condition to check should_stop flag
+        # Initialize all_proxies only once
+        self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
+
+        # # Start a separate thread for updating the display
+        # self.display_thread = Thread(target=self.update_display)
+        # self.display_thread.daemon = True
+        # self.display_thread.start()
+        
+        while True:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
-            for p in proxies:
-                if self.should_stop:  # Check should_stop before adding proxies
-                    break
-                self.all_proxies.append({'proxy': p, 'time': time.time(), 'url': ""})
-
+            # Remove the proxy append loop since we initialized it outside
             for i in range(0, int(self.nb_of_threads)):
-                if self.should_stop:  # Check should_stop before starting new threads
-                    break
-                acquired = self.thread_semaphore.acquire()  # Acquire the semaphore with a timeout
+                acquired = self.thread_semaphore.acquire()
                 if acquired:
                     threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
                     threaded.daemon = True
                     threaded.start()
 
-            if elapsed_seconds >= 300 and self.proxy_imported == False and not self.should_stop:
+            if elapsed_seconds >= 300 and self.proxy_imported == False:
                 # Refresh the proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
                 self.proxyrefreshed = False
                 proxies = self.get_proxies()
-                elapsed_seconds = 0  # Reset elapsed time
+                # Update all_proxies with new proxies
+                self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
+                elapsed_seconds = 0
 
             if self.should_stop:
-                break
-
-            time.sleep(0.1)  # Add small sleep to prevent CPU overuse
+                sys.exit()
 
