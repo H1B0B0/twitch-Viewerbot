@@ -14,17 +14,12 @@ export function useViewerCount(username: string | undefined) {
       setPreviousCount(viewerCount);
       setViewerCount(count);
       setLastUpdate(new Date());
-      console.log(
-        `📊 Viewer count updated at ${new Date().toLocaleTimeString()}: ${count} viewers`
-      );
     };
 
-    console.log(`🔄 Starting viewer count polling for ${username}`);
     fetchViewerCount();
     const interval = setInterval(fetchViewerCount, 2000);
 
     return () => {
-      console.log(`⏹️ Stopping viewer count polling for ${username}`);
       clearInterval(interval);
     };
   }, [username, viewerCount]);

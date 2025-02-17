@@ -15,11 +15,13 @@ export default function RootLayout({
     <html suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <div className="fixed inset-0 -z-10">
-            <Spline
-              scene="https://prod.spline.design/LE-Lh2ApbhLmRH9i/scene.splinecode"
-              className="blur-xl"
-            />
+          <div className="fixed inset-0 w-full h-full overflow-hidden">
+            <div className="absolute inset-0">
+              <Spline
+                scene="https://prod.spline.design/LE-Lh2ApbhLmRH9i/scene.splinecode"
+                className="blur-xl absolute"
+              />
+            </div>
           </div>
           <main className="w-full relative z-10">
             <ApiHealthProvider>{children}</ApiHealthProvider>

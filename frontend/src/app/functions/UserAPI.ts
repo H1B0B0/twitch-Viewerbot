@@ -34,8 +34,6 @@ export async function login(loginData: LoginData) {
       xsrfHeaderName: "X-CSRF-TOKEN",
     });
 
-    // Vérifiez les cookies après la réponse
-    console.log("Cookies:", document.cookie);
     return response.data;
   } catch (error) {
     console.error("Login error:", error);

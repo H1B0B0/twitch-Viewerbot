@@ -36,9 +36,6 @@ export default function ViewerBotInterface() {
     config?.channelName || profile?.user?.TwitchUsername
   );
 
-  console.log("currentViewers", currentViewers);
-  console.log("profile", profile);
-
   const [isLoading, setIsLoading] = useState(false);
   const [proxyFile, setProxyFile] = useState<File | null>(null);
   const [stats, setStats] = useState({
@@ -133,7 +130,7 @@ export default function ViewerBotInterface() {
 
   const handleStart = async () => {
     try {
-      setIsLoading(true); // Set loading before starting
+      setIsLoading(true);
       await startBot({
         channelName: config.channelName,
         threads: config.threads,

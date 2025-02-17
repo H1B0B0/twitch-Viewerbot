@@ -5,7 +5,6 @@ export async function getViewerCount(username: string): Promise<number> {
   }
 
   try {
-    console.log(`📺 Fetching viewer count for channel: ${username}`);
     const graphqlQuery = {
       query: `
         query GetViewerCount($login: String!) {
@@ -31,15 +30,6 @@ export async function getViewerCount(username: string): Promise<number> {
     const data = await response.json();
     const viewersCount = data?.data?.user?.stream?.viewersCount || 0;
 
-    if (data?.data?.user?.stream) {
-      console.log(`✅ Channel ${username}: ${viewersCount} viewers on stream`);
-    } else {
-      console.log(
-        `❌ Channel ${username} is offline or no stream data available`
-      );
-    }
-
-    console.log("Response data:", data);
     return viewersCount;
   } catch (error) {
     console.error(`🔴 Error fetching viewer count for ${username}:`, error);
