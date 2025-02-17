@@ -9,6 +9,7 @@ import {
   Slider,
   Checkbox,
   ButtonGroup,
+  Tooltip,
 } from "@heroui/react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -47,6 +48,8 @@ export default function ViewerBotInterface() {
     targetViewers: 0,
   });
 
+  const [channelNameModified, setChannelNameModified] = useState(false);
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -81,14 +84,18 @@ export default function ViewerBotInterface() {
   }, [isLoading]);
 
   useEffect(() => {
-    // If profile loads and channel name is empty, set it to TwitchUsername
-    if (profile?.user?.TwitchUsername && !config.channelName) {
+    // If profile loads and channel name is empty, set it ONLY ONCE
+    if (
+      profile?.user?.TwitchUsername &&
+      !config.channelName &&
+      !channelNameModified
+    ) {
       setConfig((prev) => ({
         ...prev,
         channelName: profile.user.TwitchUsername,
       }));
     }
-  }, [profile, config.channelName]); // Ajout de config.channelName dans les dépendances
+  }, [profile]); // Retirer config.channelName des dépendances
 
   // Modifier la vérification initiale de l'état du bot
   useEffect(() => {
@@ -177,11 +184,19 @@ export default function ViewerBotInterface() {
     }
   };
 
+  const handleChannelNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChannelNameModified(true);
+    setConfig((prev) => ({
+      ...prev,
+      channelName: e.target.value,
+    }));
+  };
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header with Logout */}
-        <Card className="relative text-center mb-8 p-8 rounded-2xl border border-default-200">
+        <Card className="relative text-center mb-8 p-8 rounded-2xl">
           {profile && (
             <Button
               variant="bordered"
@@ -242,21 +257,47 @@ export default function ViewerBotInterface() {
                 placeholder={
                   profile?.user?.TwitchUsername || "Enter channel name"
                 }
-                onChange={(e) =>
-                  setConfig({ ...config, channelName: e.target.value })
-                }
+                onChange={handleChannelNameChange}
               />
-              <Input
-                type="number"
-                label="Number of Threads"
-                value={config.threads.toString()}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    threads: parseInt(e.target.value),
-                  })
-                }
-              />
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  label="Number of Threads"
+                  value={config.threads.toString()}
+                  min={1}
+                  max={1000}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      threads: Math.max(
+                        1,
+                        Math.min(1000, parseInt(e.target.value) || 1)
+                      ),
+                    })
+                  }
+                />
+                <Tooltip
+                  content={
+                    <div className="max-w-xs p-2">
+                      <p>
+                        Threads determine how many simultaneous connections the
+                        bot will make.
+                      </p>
+                      <p className="mt-1">
+                        More threads = more viewers, but requires more resources
+                        and stable proxies.
+                      </p>
+                      <p className="mt-1">
+                        Recommended: Start with 100-200 threads.
+                      </p>
+                    </div>
+                  }
+                >
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-default-100 text-default-500 cursor-help">
+                    ?
+                  </div>
+                </Tooltip>
+              </div>
               <div>
                 <Slider
                   value={[config.timeout]}

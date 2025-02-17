@@ -48,6 +48,12 @@ dependencies = [
     # Utilities
     "python-decouple",
     "argparse",
+
+    "certbot",
+    "cryptography",
+    "requests",
+    "Werkzeug",
+    "gevent"
 ]
 
 [project.optional-dependencies]

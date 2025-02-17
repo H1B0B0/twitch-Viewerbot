@@ -27,6 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 .pytest_cache/
+logs/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -134,3 +135,5 @@ output.wav
 
 src/twitchbot/tokens.txt
 src/twitchbot/valid_tokens.txt
+backend/certs/velbots.shop.key
+.gitignore

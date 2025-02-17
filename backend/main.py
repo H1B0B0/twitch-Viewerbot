@@ -8,10 +8,11 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import webbrowser
 from api import api  # Import the API blueprint
+from werkzeug.middleware.proxy_fix import ProxyFix
+from gevent.pywsgi import WSGIServer
+from threading import Thread
 
 # Set urllib3's logger level to WARNING
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -82,33 +83,26 @@ def auth_middleware(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route('/login')
+def serve_login():
+    # If you have a login.html in static/
+    login_file = os.path.join(app.static_folder, 'login.html')
+    if os.path.exists(login_file):
+        return send_file(login_file)
+    return abort(404)
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-@auth_middleware
-def serve_files(path):
-    logger.info(f"Request for path: {path}")
-    
-    try:
-        # Remove .html extension if present
-        if path.endswith('.html'):
-            path = path[:-5]
-            
-        # Check for static file
-        file_path = os.path.join(app.static_folder, path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return send_file(file_path)
-            
-        # Try with .html extension for static files
-        html_path = os.path.join(app.static_folder, f"{path}.html")
-        if os.path.exists(html_path) and os.path.isfile(html_path):
-            return send_file(html_path)
-            
-        # For all other paths, return index.html
-        return send_file(os.path.join(app.static_folder, 'index.html'))
-            
-    except Exception as e:
-        logger.error(f"Error serving file: {e}")
-        abort(404)
+@auth_middleware  # Optional if you still want to protect routes
+def serve_frontend(path):
+    # Return the static files from the "static" folder
+    if not path:
+        path = 'index.html'
+    full_path = os.path.join(app.static_folder, path)
+    if os.path.exists(full_path) and os.path.isfile(full_path):
+        return send_file(full_path)
+    # Fallback to serving index.html
+    return send_file(os.path.join(app.static_folder, 'index.html'))
 
 # Ajoutez ces headers à toutes les réponses
 @app.after_request
@@ -138,5 +132,22 @@ if __name__ == '__main__':
     # Lancer le navigateur après un court délai
     from threading import Timer
     Timer(1.5, open_browser).start()
-    
-    app.run(debug=True, host='0.0.0.0', port=3001)
+
+    CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
+    KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
+
+    # NOTE: If you want HTTP->HTTPS redirect, run an HTTP server separately
+    # ...existing code to create uploads folder, etc...
+
+    if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
+        https_server = WSGIServer(
+            ('0.0.0.0', 443),
+            app,
+            certfile=CERT_PATH,
+            keyfile=KEY_PATH
+        )
+        logger.info("Starting HTTPS on port 443")
+        https_server.serve_forever()
+    else:
+        logger.warning("SSL certificates not found, running in development mode")
+        app.run(debug=True, host='0.0.0.0', port=3001)
