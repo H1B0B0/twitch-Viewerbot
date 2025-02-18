@@ -64,6 +64,12 @@ jobs:
           "backend/main.py" `
           --name "TwitchViewerBOT"
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: dist/TwitchViewerBOT
+
   build-macos:
     runs-on: macos-latest
     steps:
