@@ -12,6 +12,7 @@ on:
 
 jobs:
   build-windows:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -87,6 +88,7 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
