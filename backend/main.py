@@ -81,26 +81,23 @@ def auth_middleware(f):
         if path.startswith(('/api/', '/_next/', '/static/', '/images/')) or \
            path.endswith(('.js', '.css', '.ico', '.png', '.jpg', '.jpeg', '.gif')):
             return f(*args, **kwargs)
-        
-        # Define public paths (including their HTML versions)
-        public_paths = ['/login', '/register', '/login.html', '/register.html']
-        is_public = path in public_paths
-        
-        # Get token from cookies
+
+        # Make /login and /register public, even with query params
+        if path.startswith('/login') or path.startswith('/register'):
+            return f(*args, **kwargs)
+
+        # Get token
         token = request.cookies.get('access_token')
         is_authenticated = token and verify_token(token)
-        
-        logger.info(f"Auth status: {is_authenticated}")
-        
-        # Redirect logic
-        if not is_public and not is_authenticated:
-            logger.info("Redirecting to login")
+
+        if not is_authenticated:
+            logger.info("Redirecting to login - not authenticated")
             return redirect('/login')
-            
-        if is_public and is_authenticated and path not in ['/api/register', '/api/login']:
-            logger.info("Redirecting")
+
+        if is_authenticated and (path == '/login' or path == '/login.html'):
+            logger.info("Redirecting authenticated user from login to home")
             return redirect('/')
-            
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -110,6 +107,14 @@ def serve_login():
     login_file = os.path.join(app.static_folder, 'login.html')
     if os.path.exists(login_file):
         return send_file(login_file)
+    return abort(404)
+
+@app.route('/register')
+def serve_register():
+    # If you have a register.html in static/
+    register_file = os.path.join(app.static_folder, 'register.html')
+    if os.path.exists(register_file):
+        return send_file(register_file)
     return abort(404)
 
 @app.route('/', defaults={'path': ''})
