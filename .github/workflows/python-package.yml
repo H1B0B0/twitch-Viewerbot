@@ -63,6 +63,7 @@ jobs:
           --add-data "backend/.env;." `
           --add-data "frontend/out;static" `
           --add-data "venv/Lib/site-packages/fake_useragent/data;fake_useragent/data" `
+          --add-data "venv/Lib/site-packages/fake_useragent;fake_useragent" `
           --add-data "venv/Lib/site-packages/streamlink;streamlink" `
           --add-data "venv/Lib/site-packages/websocket;websocket" `
           --add-data "venv/Lib/site-packages/cffi;cffi" `
@@ -72,6 +73,7 @@ jobs:
           --collect-submodules websocket `
           --collect-submodules cffi `
           --collect-submodules Crypto `
+          --hidden-import rich `
           --hidden-import dotenv `
           --hidden-import trio `
           "backend/main.py" `
@@ -186,13 +188,10 @@ jobs:
             - 🖥️ Modern and responsive React interface
             - 📊 Real-time dashboard with statistics
             - 🌙 Dark/Light mode
-            - 📱 Mobile support
             ### Bot Features
-            - 🤖 Integrated AI chat system
             - 📈 Advanced analytics
             - 🔄 Automatic proxy rotation
             - ⚡ Optimized performance mode
-            - 🎮 Multi-stream support
 
             ### Security
             - 🔒 JWT Authentication
@@ -201,7 +200,6 @@ jobs:
             - 🌐 HTTPS/SSL Support
 
             ### Premium Features
-            - 💬 Custom AI chatbot
             - 📊 Detailed statistics
             - 🔄 Auto-restart capability
             - ⚡ High-performance mode
@@ -220,16 +218,10 @@ jobs:
             - Random disconnection fixes
             - CPU usage optimization
 
-            ## 📚 Documentation
-            - Detailed installation guide
-            - API documentation
-            - Usage examples
-            - Troubleshooting guide
 
             ## 🔗 Links
-            - [Documentation](https://docs.velbots.shop)
             - [Discord Support](https://discord.gg/2Sqvx25auv)
-            - [Premium Access](https://www.patreon.com/hibo/membership)
+            - [Patreon Support](https://www.patreon.com/hibo/membership)
 
             ## 💻 Installation
             1. Download the executable
