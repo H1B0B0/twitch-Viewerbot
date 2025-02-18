@@ -24,7 +24,7 @@ export default function ViewerBotInterface() {
   const router = useRouter();
   const { data: profile } = useGetProfile();
   const [config, setConfig] = useState({
-    threads: 1,
+    threads: 0,
     channelName: "",
     gameName: "",
     messagesPerMinute: 1,
@@ -32,8 +32,7 @@ export default function ViewerBotInterface() {
     proxyType: "http",
     timeout: 1000,
   });
-  const { viewerCount: currentViewers, previousCount } = useViewerCount(
-    // Use channelName from config if it doesn't match the profile's TwitchUsername
+  const { viewerCount: currentViewers } = useViewerCount(
     config?.channelName || profile?.user?.TwitchUsername
   );
 
@@ -95,7 +94,7 @@ export default function ViewerBotInterface() {
         channelName: profile.user.TwitchUsername,
       }));
     }
-  }, [profile]); // Retirer config.channelName des dépendances
+  }, [profile, channelNameModified, config.channelName]);
 
   // Modifier la vérification initiale de l'état du bot
   useEffect(() => {
@@ -136,6 +135,13 @@ export default function ViewerBotInterface() {
   }, []); // Exécuter une seule fois au montage
 
   const handleStart = async () => {
+    if (!config.channelName) {
+      toast.error("Channel name is required");
+      return;
+    } else if (config.threads === 0) {
+      toast.error("Threads count must be greater than 0");
+      return;
+    }
     try {
       setIsLoading(true);
       await startBot({
@@ -145,7 +151,9 @@ export default function ViewerBotInterface() {
         timeout: config.timeout,
         proxyType: config.proxyType,
       });
-      toast.success("Bot started successfully!");
+      toast.success(
+        "Bot started successfully!🚀 It may take a while before the viewers appear on the stream."
+      );
     } catch (err) {
       toast.error(
         `Failed to start bot: ${
@@ -197,6 +205,17 @@ export default function ViewerBotInterface() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header with Logout */}
         <Card className="relative text-center mb-8 p-8 rounded-2xl">
+          <Button
+            as="a"
+            href="https://www.patreon.com/c/HIBO"
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="bordered"
+            className="absolute left-4 top-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-none"
+            startContent={<span className="text-lg">❤️</span>}
+          >
+            Support Me
+          </Button>
           {profile && (
             <Button
               variant="bordered"
@@ -224,10 +243,7 @@ export default function ViewerBotInterface() {
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ViewerStatCard
-                value={currentViewers}
-                previousValue={previousCount}
-              />
+              <ViewerStatCard value={currentViewers} />
               <StatCard
                 title="Active Threads"
                 value={stats.activeThreads}
@@ -263,16 +279,16 @@ export default function ViewerBotInterface() {
                 <Input
                   type="number"
                   label="Number of Threads"
-                  value={config.threads.toString()}
-                  min={1}
+                  value={config.threads === 0 ? "" : config.threads.toString()}
+                  min={0}
                   max={1000}
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      threads: Math.max(
-                        1,
-                        Math.min(1000, parseInt(e.target.value) || 1)
-                      ),
+                      threads:
+                        e.target.value === ""
+                          ? 0
+                          : Math.min(1000, parseInt(e.target.value) || 0),
                     })
                   }
                 />

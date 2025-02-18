@@ -8,11 +8,10 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import webbrowser
 from api import api  # Import the API blueprint
-from werkzeug.middleware.proxy_fix import ProxyFix
 from gevent.pywsgi import WSGIServer
-from threading import Thread
 
 # Set urllib3's logger level to WARNING
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 # Load environment variables from .env file
 load_dotenv()
 
@@ -136,8 +135,6 @@ if __name__ == '__main__':
     CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
     KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
 
-    # NOTE: If you want HTTP->HTTPS redirect, run an HTTP server separately
-    # ...existing code to create uploads folder, etc...
 
     if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
         https_server = WSGIServer(

@@ -1,95 +1,54 @@
-import axios from "axios";
+const API_BASE_URL = "https://velbots.shop/api/bot";
 
-const BASE_URL = "http://localhost:3001/api";
-const AUTH_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
-
-// Fonction pour vérifier si l'utilisateur est authentifié
-async function checkAuthStatus() {
-  try {
-    const response = await axios.get(`${AUTH_URL}/users/profile`, {
-      withCredentials: true,
-    });
-    return !!response.data;
-  } catch (error) {
-    console.error("Authentication check failed:", error);
-    return false;
-  }
-}
-
-export interface BotStats {
-  request_count: number;
-  active_threads: number;
-  total_proxies: number;
-  alive_proxies: number;
-  is_running: boolean;
-  channel_name: string | null;
-  config?: {
-    threads: number;
-    timeout: number;
-    proxy_type: string;
-  };
-}
-
-export interface BotConfig {
+export const startBot = async (config: {
   channelName: string;
   threads: number;
   proxyFile?: File;
-  timeout: number;
-  proxyType: string;
-}
-
-export async function startBot(config: BotConfig) {
-  // Vérifier l'authentification avant de démarrer le bot
-  const isAuthenticated = await checkAuthStatus();
-  if (!isAuthenticated) {
-    throw new Error("Authentication required");
+  timeout?: number;
+  proxyType?: string;
+}) => {
+  const formData = new FormData();
+  formData.append("channelName", config.channelName);
+  formData.append("threads", config.threads.toString());
+  if (config.proxyFile) {
+    formData.append("proxyFile", config.proxyFile);
   }
-
-  try {
-    const formData = new FormData();
-    formData.append("channelName", config.channelName);
-    formData.append("threads", config.threads.toString());
+  if (config.timeout) {
     formData.append("timeout", config.timeout.toString());
+  }
+  if (config.proxyType) {
     formData.append("proxyType", config.proxyType);
-
-    if (config.proxyFile) {
-      formData.append("proxyFile", config.proxyFile);
-    }
-
-    const response = await axios.post(`${BASE_URL}/bot/start`, formData);
-    return response.data;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    }
-    throw new Error("An unknown error occurred");
-  }
-}
-
-export async function stopBot() {
-  const isAuthenticated = await checkAuthStatus();
-  if (!isAuthenticated) {
-    throw new Error("Authentication required");
   }
 
-  try {
-    const response = await axios.post(`${BASE_URL}/bot/stop`);
-    return response.data;
-  } catch (error: unknown) {
-    throw error;
-  }
-}
+  const response = await fetch(`${API_BASE_URL}/start`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
 
-export async function getBotStats() {
-  const isAuthenticated = await checkAuthStatus();
-  if (!isAuthenticated) {
-    throw new Error("Authentication required");
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+  return response.json();
+};
 
-  try {
-    const response = await axios.get<BotStats>(`${BASE_URL}/bot/stats`);
-    return response.data;
-  } catch (error: unknown) {
-    throw error;
+export const stopBot = async () => {
+  const response = await fetch(`${API_BASE_URL}/stop`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
-}
+  return response.json();
+};
+
+export const getBotStats = async () => {
+  const response = await fetch(`${API_BASE_URL}/stats`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};

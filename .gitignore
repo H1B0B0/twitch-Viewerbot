@@ -135,5 +135,3 @@ output.wav
 
 src/twitchbot/tokens.txt
 src/twitchbot/valid_tokens.txt
-backend/certs/velbots.shop.key
-.gitignore

@@ -1,142 +1,87 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardBody } from "@heroui/react";
-import { motion } from "framer-motion";
+import { FaArrowUp, FaArrowDown, FaMinus } from "react-icons/fa";
+import { useViewerCache } from "../hooks/useViewerCache";
+import { cn } from "../utils/cn";
 
 type ViewerStatCardProps = {
   value: number;
-  previousValue?: number;
 };
 
-type EmberParticleProps = {
-  trend: "up" | "down";
-  delay?: number;
-};
-
-function EmberParticle({ trend, delay = 0 }: EmberParticleProps) {
-  const [randomSeed, setRandomSeed] = useState(Math.random());
-
-  const randomValues = useMemo(
-    () => ({
-      initialX: Math.random() * 80 - 40,
-      randomX1: Math.random() * 40 - 20,
-      randomX2: Math.random() * 80 - 40,
-      randomRotate: Math.random() * 360,
-      randomSize: Math.random() * 3 + 2, // taille entre 2 et 5px
-      randomBorderRadius: Math.random() * 10 + 2, // forme moins arrondie
-    }),
-    [] // Removed randomSeed from dependencies as it's not needed
-  );
-
-  return (
-    <motion.div
-      key={randomSeed} // En changeant le key, on force le remount du composant pour un nouveau cycle
-      initial={{
-        y: 0,
-        x: randomValues.initialX,
-        opacity: 1,
-        scale: 1,
-        rotate: 0,
-      }}
-      animate={{
-        y: trend === "up" ? [0, -40, -120] : [0, 40, 80],
-        x:
-          trend === "up"
-            ? [
-                randomValues.initialX,
-                randomValues.initialX + randomValues.randomX1,
-                randomValues.initialX + randomValues.randomX2,
-              ]
-            : [
-                randomValues.initialX,
-                randomValues.initialX,
-                randomValues.initialX,
-              ],
-        opacity: [1, 0.7, 0],
-        scale: [1, 1.3, 0],
-        rotate: [0, randomValues.randomRotate, 0],
-      }}
-      transition={{
-        duration: 2 + Math.random(),
-        delay: delay,
-        ease: "easeOut",
-      }}
-      onAnimationComplete={() => setRandomSeed(Math.random())}
-      style={{
-        width: randomValues.randomSize,
-        height: randomValues.randomSize,
-        borderRadius: randomValues.randomBorderRadius,
-      }}
-      className={`absolute ${
-        trend === "up"
-          ? "bg-gradient-to-t from-orange-600 to-yellow-400 shadow-lg shadow-orange-500/50"
-          : "bg-gradient-to-b from-blue-500 to-cyan-300"
-      }`}
-    />
-  );
-}
-
-export function ViewerStatCard({ value, previousValue }: ViewerStatCardProps) {
-  const [trend, setTrend] = useState<"up" | "down" | null>(null);
+export function ViewerStatCard({ value }: ViewerStatCardProps) {
+  const { previousValue, percentageChange } = useViewerCache(value);
+  const difference = value - previousValue;
+  const [showGlow, setShowGlow] = useState(false);
 
   useEffect(() => {
-    if (previousValue !== undefined && value !== previousValue) {
-      setTrend(value > previousValue ? "up" : "down");
+    if (difference > 0) {
+      setShowGlow(true);
+      const timer = setTimeout(() => setShowGlow(false), 2000);
+      return () => clearTimeout(timer);
     }
-  }, [value, previousValue]);
+  }, [value, difference]);
 
-  const renderParticles = () => {
-    return Array.from({ length: 20 }).map((_, i) => (
-      <EmberParticle key={`${trend}-${i}`} trend={trend!} delay={i * 0.1} />
-    ));
+  const getTrendColor = () => {
+    if (difference > 0) return "text-green-500";
+    if (difference < 0) return "text-red-500";
+    return "text-gray-500";
+  };
+
+  const getTrendIcon = () => {
+    if (difference > 0) return <FaArrowUp className="w-4 h-4" />;
+    if (difference < 0) return <FaArrowDown className="w-4 h-4" />;
+    return <FaMinus className="w-4 h-4" />;
   };
 
   return (
-    <Card>
-      <CardBody className="space-y-3 relative overflow-hidden">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          Current Viewers
-          {trend && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className={`text-xl ${
-                trend === "up" ? "text-orange-500" : "text-blue-500"
-              }`}
-            >
-              {trend === "up" ? "🔥" : "❄️"}
-            </motion.div>
-          )}
-        </h3>
-        <div className="flex justify-center items-center relative min-h-[80px]">
-          <motion.div
-            key={value}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{
-              scale: 1,
-              opacity: 1,
-              transition: { type: "spring", stiffness: 300, damping: 20 },
-            }}
-            className={`text-4xl font-bold relative z-10 ${
-              trend === "up"
-                ? "text-orange-500 drop-shadow-[0_0_15px_rgba(255,165,0,0.7)]"
-                : trend === "down"
-                ? "text-blue-500 drop-shadow-[0_0_15px_rgba(0,191,255,0.7)]"
-                : ""
-            }`}
-          >
-            {value === 0 ? (
-              <span className="text-2xl text-default-400">Offline</span>
-            ) : (
-              value.toLocaleString()
+    <div className="relative">
+      {showGlow && (
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-purple-500/30 rounded-lg blur-xl animate-pulse" />
+      )}
+      <Card
+        className={cn(
+          "relative border-none bg-default-50/50 backdrop-blur-md transition-all duration-300",
+          showGlow && "ring-2 ring-purple-500/50"
+        )}
+        shadow="sm"
+      >
+        <CardBody className="space-y-4 p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider">
+              Live Viewers
+            </h3>
+            {showGlow && (
+              <span className="flex h-2 w-2">
+                <span className="animate-ping absolute h-2 w-2 rounded-full bg-purple-400 opacity-75" />
+                <span className="rounded-full h-2 w-2 bg-purple-500" />
+              </span>
             )}
-          </motion.div>
-          {trend && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              {renderParticles()}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-baseline gap-2">
+              <span
+                className={cn(
+                  "text-4xl font-black bg-clip-text text-transparent transition-all duration-1000",
+                  showGlow
+                    ? "bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 animate-gradient-x"
+                    : "bg-gradient-to-r from-purple-600 to-pink-600"
+                )}
+              >
+                {value.toLocaleString()}
+              </span>
             </div>
-          )}
-        </div>
-      </CardBody>
-    </Card>
+            <div className={`flex items-center gap-1 ${getTrendColor()}`}>
+              {getTrendIcon()}
+              <span className="text-sm font-medium">
+                {Math.abs(percentageChange).toFixed(1)}%
+              </span>
+              <span className="text-xs text-default-500 ml-1">
+                since last update
+              </span>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </div>
   );
 }

@@ -13,6 +13,7 @@
     "@heroui/react": "^2.6.14",
     "@splinetool/react-spline": "^4.0.0",
     "axios": "^1.7.9",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.4.3",
     "jose": "^5.9.6",
     "next": "15.1.7",
@@ -23,6 +24,7 @@
     "react-markdown": "^9.0.3",
     "react-toastify": "^11.0.3",
     "swr": "^2.3.2",
+    "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {

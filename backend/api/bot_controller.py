@@ -140,7 +140,8 @@ def get_stats():
 
 @bot_api.after_request
 def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://velbots.shop')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response

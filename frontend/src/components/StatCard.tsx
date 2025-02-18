@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardBody, Progress } from "@heroui/react";
+import { cn } from "../utils/cn";
+import { AnimatedCounter } from "./AnimatedCounter";
 
 type StatCardProps = {
   title: string;
@@ -10,19 +12,95 @@ type StatCardProps = {
 
 export function StatCard({ title, value, total, increment }: StatCardProps) {
   const percentage = total ? (value / total) * 100 : 0;
+  const [prevValue, setPrevValue] = useState<number>(value);
+  const [isIncreasing, setIsIncreasing] = useState<boolean>(false);
+  const [addedValue, setAddedValue] = useState<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (value > prevValue) {
+      const difference = value - prevValue;
+      setAddedValue(difference);
+      setIsIncreasing(true);
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = setTimeout(() => {
+        setIsIncreasing(false);
+        setAddedValue(0);
+      }, 1000);
+    }
+    setPrevValue(value);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [value, prevValue]);
+
+  const isRequestCard = title.toLowerCase().includes("request");
 
   return (
-    <Card>
-      <CardBody className="space-y-3">
-        <h3 className="text-sm font-medium">{title}</h3>
+    <Card
+      className={cn(
+        "border-none bg-gradient-to-br from-default-50/50 to-default-100/50 backdrop-blur-md transition-all duration-300",
+        isRequestCard && isIncreasing && "ring-1 ring-purple-500/50"
+      )}
+      shadow="sm"
+    >
+      <CardBody className="space-y-4 p-6">
+        <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider flex items-center justify-between">
+          {title}
+          {isRequestCard && isIncreasing && (
+            <span className="flex h-2 w-2">
+              <span className="animate-ping absolute h-2 w-2 rounded-full bg-purple-400 opacity-75" />
+              <span className="rounded-full h-2 w-2 bg-purple-500" />
+            </span>
+          )}
+        </h3>
         <div className="flex justify-between items-baseline">
-          <div className="flex items-baseline">
-            <span className="text-2xl font-bold">{value}</span>
-            {increment && <span className="ml-1 text-sm opacity-70">/s</span>}
+          <div className="flex items-baseline gap-2 relative">
+            <span
+              className={cn(
+                "text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent transition-all duration-300",
+                isRequestCard && isIncreasing && "scale-105"
+              )}
+            >
+              {title.toLowerCase().includes("thread") ||
+              title.toLowerCase().includes("requests") ? (
+                <AnimatedCounter value={value} />
+              ) : (
+                value.toLocaleString()
+              )}
+            </span>
+            {isRequestCard && isIncreasing && addedValue > 0 && (
+              <span className="absolute -right-12 top-0 text-xs font-medium text-green-500 animate-fade-up">
+                +{addedValue.toLocaleString()}
+              </span>
+            )}
+            {increment && (
+              <span className="text-xs font-medium text-default-500">/sec</span>
+            )}
           </div>
-          {total && <div className="text-sm opacity-70">of {total}</div>}
+          {total && (
+            <div className="text-sm font-medium text-default-400">
+              of {total.toLocaleString()}
+            </div>
+          )}
         </div>
-        {total && <Progress value={percentage} />}
+        {total && (
+          <Progress
+            value={percentage}
+            classNames={{
+              base: "h-2",
+              indicator: "bg-gradient-to-r from-purple-600 to-pink-600",
+              track: "bg-default-100",
+            }}
+          />
+        )}
       </CardBody>
     </Card>
   );
