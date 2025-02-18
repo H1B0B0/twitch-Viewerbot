@@ -4,7 +4,7 @@ import axios from "axios";
 
 const GITHUB_API =
   "https://api.github.com/repos/H1B0B0/twitch-Viewerbot/releases/latest";
-const CURRENT_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
+const CURRENT_VERSION = "3.0.0";
 
 interface GithubRelease {
   tag_name: string;

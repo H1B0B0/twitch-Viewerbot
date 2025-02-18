@@ -18,19 +18,21 @@ export function StatCard({ title, value, total, increment }: StatCardProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (value > prevValue) {
+    if (value !== prevValue) {
       const difference = value - prevValue;
-      setAddedValue(difference);
-      setIsIncreasing(true);
+      if (difference > 0) {
+        setAddedValue(difference);
+        setIsIncreasing(true);
 
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+
+        timerRef.current = setTimeout(() => {
+          setIsIncreasing(false);
+          setAddedValue(0);
+        }, 1000);
       }
-
-      timerRef.current = setTimeout(() => {
-        setIsIncreasing(false);
-        setAddedValue(0);
-      }, 1000);
     }
     setPrevValue(value);
 

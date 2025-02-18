@@ -334,14 +334,43 @@ export default function ViewerBotInterface() {
                 <label className="text-sm font-medium block">
                   Proxy List (Optional)
                 </label>
-                <Input
-                  type="file"
-                  accept=".txt"
-                  onChange={(e) => setProxyFile(e.target.files?.[0] || null)}
-                />
+                <div className="relative">
+                  <Button
+                    as="label"
+                    className="w-full h-[40px] flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg cursor-pointer transition-all duration-300 group"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
+                    <span className="text-sm">
+                      {proxyFile
+                        ? proxyFile.name
+                        : "Choose proxy file (Optional)"}
+                    </span>
+                    <Input
+                      type="file"
+                      accept=".txt"
+                      onChange={(e) =>
+                        setProxyFile(e.target.files?.[0] || null)
+                      }
+                      className="hidden"
+                    />
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500">
                   Upload a .txt file with proxies or let the bot scrape them
-                  automatically
+                  automatically (format: ip:port). Ensure the proxies are
+                  reliable for better performance.
                 </p>
               </div>
             </CardBody>
