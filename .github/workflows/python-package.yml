@@ -146,22 +146,22 @@ jobs:
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
-      - name: Upload MacOS Asset
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/TwitchViewerBOT
-          asset_name: TwitchViewerBOT-MacOS
-          asset_content_type: application/octet-stream
+          name: macos-build
+          path: dist/TwitchViewerBOT
 
   create-release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -248,13 +248,22 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Windows Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/TwitchViewerBOT.exe
-          asset_name: TwitchViewerBOT.exe
+          asset_path: ./artifacts/windows-build/TwitchViewerBOT.exe
+          asset_name: TwitchViewerBOT-Windows.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload MacOS Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/macos-build/TwitchViewerBOT
+          asset_name: TwitchViewerBOT-MacOS
           asset_content_type: application/octet-stream
