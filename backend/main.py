@@ -2,6 +2,7 @@ from flask import Flask, send_file, request, redirect, abort
 from flask_cors import CORS
 from functools import wraps
 import os
+import sys
 import logging
 import jwt
 from dotenv import load_dotenv
@@ -9,18 +10,40 @@ import webbrowser
 from api import api
 from gevent.pywsgi import WSGIServer
 
-# Set urllib3's logger level to WARNING
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-# Load environment variables from .env file
-load_dotenv()
+def get_env_path():
+    """Get the correct path for .env file in both dev and PyInstaller environments"""
+    if getattr(sys, 'frozen', False):
+        # Running in PyInstaller bundle
+        bundle_dir = sys._MEIPASS
+        return os.path.join(bundle_dir, '.env')
+    else:
+        # Running in normal Python environment
+        return os.path.join(os.path.dirname(__file__), '.env')
 
-logging.basicConfig(level=logging.DEBUG)
+# Modify logging configuration
+if getattr(sys, 'frozen', False):
+    # Running in PyInstaller bundle (production)
+    logging.getLogger().setLevel(logging.CRITICAL)  # Only show errors
+    logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+    logging.getLogger("werkzeug").setLevel(logging.CRITICAL)  # Disable Flask debug logs
+else:
+    # Running in development mode
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+env_path = get_env_path()
+load_dotenv(env_path)
 
 # Check for JWT_SECRET in environment variables
 JWT_SECRET = os.getenv('JWT_SECRET')
 if not JWT_SECRET:
-    logger.error("JWT_SECRET not found in environment variables")
+    logger.error(f"JWT_SECRET not found in environment variables. Env path: {env_path}")
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            logger.info(f"Env file contents: {f.read()}")
     raise ValueError("JWT_SECRET must be set in environment variables")
 
 app = Flask(__name__, static_folder='static')
@@ -140,10 +163,16 @@ if __name__ == '__main__':
             ('0.0.0.0', 443),
             app,
             certfile=CERT_PATH,
-            keyfile=KEY_PATH
+            keyfile=KEY_PATH,
+            log=None  # Disable WSGIServer logs in production
         )
         logger.info("Starting HTTPS on port 443")
         https_server.serve_forever()
     else:
         logger.warning("SSL certificates not found, running in development mode")
-        app.run(debug=True, host='0.0.0.0', port=3001)
+        if getattr(sys, 'frozen', False):
+            # Production mode
+            app.run(debug=False, host='0.0.0.0', port=3001)
+        else:
+            # Development mode
+            app.run(debug=True, host='0.0.0.0', port=3001)

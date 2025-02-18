@@ -15,6 +15,8 @@ logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 console = Console()
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Session creating for request
 ua = UserAgent()
@@ -49,12 +51,12 @@ class ViewerBot:
         self.request_per_second = 0  # Add counter for requests per second
         self.requests_in_current_second = 0
         self.last_request_time = time.time()
-        print(f"Type of proxy: {self.type_of_proxy}")
-        print(f"Timeout: {self.timeout}")
-        print(f"Proxy imported: {self.proxy_imported}")
-        print(f"Proxy file: {self.proxy_file}")
-        print(f"Number of threads: {self.nb_of_threads}")
-        print(f"Channel name: {self.channel_name}")
+        logging.debug(f"Type of proxy: {self.type_of_proxy}")
+        logging.debug(f"Timeout: {self.timeout}")
+        logging.debug(f"Proxy imported: {self.proxy_imported}")
+        logging.debug(f"Proxy file: {self.proxy_file}")
+        logging.debug(f"Number of threads: {self.nb_of_threads}")
+        logging.debug(f"Channel name: {self.channel_name}")
 
     def get_proxies(self):
         # Fetch proxies from an API or use the provided proxy list
@@ -64,24 +66,25 @@ class ViewerBot:
                     with open(self.proxy_file, 'r') as f:
                         lines = [line.strip() for line in f.readlines() if line.strip()]
                         self.proxyrefreshed = True
+                        logging.debug(f"Proxies loaded from file: {lines}")
                         return lines
                 except FileNotFoundError:
-                    print(f"Proxy file {self.proxy_file} not found.")
+                    logging.error(f"Proxy file {self.proxy_file} not found.")
                     sys.exit(1)
             else:
                 try:
                     response = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.type_of_proxy}&timeout={self.timeout}&country=all&ssl=all&anonymity=all")
                     if response.status_code == 200:
-                        lines = []
                         lines = response.text.split("\n")
                         lines = [line.strip() for line in lines if line.strip()]
                         self.proxyrefreshed = True
+                        logging.debug(f"Proxies fetched from API: {lines}")
                         return lines
-                except:
+                except Exception as e:
+                    logging.error(f"Error fetching proxies: {e}")
                     if len(response.text) == "":
                         console.print("Limit of proxy retrieval reached. Retry later", style="bold red")
                         return []
-                    pass
     
     def get_url(self):
         url = ""
@@ -89,10 +92,11 @@ class ViewerBot:
             streams = session.streams(self.channel_url)
             try:
                 url = streams['audio_only'].url
-            except:
+            except KeyError:
                 url = streams['worst'].url
-        except:
-            pass
+        except Exception as e:
+            logging.error(f"Error getting stream URL: {e}")
+        logging.debug(f"Stream URL: {url}")
         return url
 
     def stop(self):
@@ -101,26 +105,8 @@ class ViewerBot:
         self.active_threads = 0  # Reset active threads count
         self.all_proxies = []  # Clear proxies list
         self.should_stop = True  # Reset the flag
-    
-    # def update_display(self):
-    #     with Live(console=console, refresh_per_second=10) as live:
-    #         while True:
-    #             table = Table(show_header=False, show_edge=False)
-    #             table.add_column(justify="right")
-    #             table.add_column(justify="left")
-                
-    #             text = Text(f"Number of requests sent: {self.request_count}")
-    #             text.stylize("bold magenta")
-    #             table.add_row(text, Spinner("aesthetic"))
-                
-    #             active_threads_text = Text(f"Active threads: {self.active_threads}")
-    #             active_threads_text.stylize("bold cyan")  # add style to the active threads text
-    #             table.add_row(active_threads_text, Spinner("aesthetic"))  # display the number of active threads
-                
-    #             live.update(table)
-    #             if self.should_stop:
-    #                 sys.exit()
-    
+        logging.debug("Bot stopped")
+
     def open_url(self, proxy_data):
         self.active_threads += 1
         try:
@@ -136,16 +122,18 @@ class ViewerBot:
                     with requests.Session() as s:
                         s.head(current_url, proxies=current_proxy, headers=headers, timeout=10)
                         self.request_count += 1
+                        logging.debug(f"Request sent using proxy {current_proxy}")
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
-            except:
-                pass
+            except Exception as e:
+                logging.error(f"Error sending request: {e}")
             finally:
                 self.active_threads -= 1
                 self.thread_semaphore.release()  # Release the semaphore
 
-        except (KeyboardInterrupt):
+        except (KeyboardInterrupt, SystemExit):
             self.should_stop = True
+            logging.debug("Bot interrupted by user")
 
     def main(self):
         start = datetime.datetime.now()
@@ -153,16 +141,11 @@ class ViewerBot:
         
         # Initialize all_proxies only once
         self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
-
-        # # Start a separate thread for updating the display
-        # self.display_thread = Thread(target=self.update_display)
-        # self.display_thread.daemon = True
-        # self.display_thread.start()
+        logging.debug(f"Initial proxies: {self.all_proxies}")
         
         while True:
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
-            # Remove the proxy append loop since we initialized it outside
             for i in range(0, int(self.nb_of_threads)):
                 acquired = self.thread_semaphore.acquire()
                 if acquired:
@@ -177,8 +160,9 @@ class ViewerBot:
                 proxies = self.get_proxies()
                 # Update all_proxies with new proxies
                 self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
+                logging.debug(f"Proxies refreshed: {self.all_proxies}")
                 elapsed_seconds = 0
 
             if self.should_stop:
+                logging.debug("Stopping main loop")
                 sys.exit()
-

@@ -59,16 +59,29 @@ jobs:
           .\venv\Scripts\activate
           pyinstaller --noconfirm --uac-admin --onefile --icon "frontend/public/favicon.ico" `
           --paths "venv/Lib/site-packages" `
-          --add-data "backend;backend" `
+          --add-data "backend;." `
+          --add-data "backend/.env;." `
           --add-data "frontend/out;static" `
+          --add-data "venv/Lib/site-packages/fake_useragent/data;fake_useragent/data" `
+          --add-data "venv/Lib/site-packages/streamlink;streamlink" `
+          --add-data "venv/Lib/site-packages/websocket;websocket" `
+          --add-data "venv/Lib/site-packages/cffi;cffi" `
+          --add-data "venv/Lib/site-packages/Crypto;Crypto" `
+          --collect-data fake_useragent `
+          --collect-submodules streamlink `
+          --collect-submodules websocket `
+          --collect-submodules cffi `
+          --collect-submodules Crypto `
+          --hidden-import dotenv `
+          --hidden-import trio `
           "backend/main.py" `
-          --name "TwitchViewerBOT"
+          --name "TwitchViewerBOT.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/TwitchViewerBOT
+          path: dist/TwitchViewerBOT.exe
 
   build-macos:
     runs-on: macos-latest
@@ -117,8 +130,21 @@ jobs:
           source venv/bin/activate
           pyinstaller --noconfirm --uac-admin --onefile --icon "frontend/public/favicon.ico" \
           --paths "venv/lib/python3.11/site-packages" \
-          --add-data "backend:backend" \
+          --add-data "backend:." \
+          --add-data "backend/.env:." \
           --add-data "frontend/out:static" \
+          --add-data "venv/lib/python3.11/site-packages/fake_useragent/data:fake_useragent/data" \
+          --add-data "venv/lib/python3.11/site-packages/streamlink:streamlink" \
+          --add-data "venv/lib/python3.11/site-packages/websocket:websocket" \
+          --add-data "venv/lib/python3.11/site-packages/cffi:cffi" \
+          --add-data "venv/lib/python3.11/site-packages/Crypto:Crypto" \
+          --collect-data fake_useragent \
+          --collect-submodules streamlink \
+          --collect-submodules websocket \
+          --collect-submodules cffi \
+          --collect-submodules Crypto \
+          --hidden-import dotenv \
+          --hidden-import trio \
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
