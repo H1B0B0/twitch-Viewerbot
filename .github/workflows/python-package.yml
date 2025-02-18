@@ -177,7 +177,10 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # 🚀 TwitchViewerBOT Release Notes V3.0
+            # 🚀 TwitchViewerBOT Release Notes V3.0.1
+
+            ## Hot Fix
+            - Fixed a critical bug preventing user registration
 
             ## 🎯 Core Features
             - **Multi-threading System**: Support for up to 1000 simultaneous threads
