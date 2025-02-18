@@ -1,10 +1,19 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import "react-toastify/dist/ReactToastify.css";
 import ThemeProvider from "../components/ThemeProvider";
 import ThemeSwitcher from "../components/ThemeSwitcher";
 import Spline from "@splinetool/react-spline";
 import ApiHealthProvider from "../components/ApiHealthProvider";
 import UpdateProvider from "../components/UpdateProvider";
+
+export const metadata: Metadata = {
+  title: "Viewer Bot",
+  description: "Viewer bot for streaming platforms",
+  icons: {
+    icon: "/favicon.ico",
+  },
+};
 
 export default function RootLayout({
   children,
