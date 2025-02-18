@@ -8,7 +8,7 @@ import datetime
 from random import shuffle
 from threading import Thread
 from streamlink import Streamlink
-from fake_useragent import UserAgent
+from ..utils.user_agent import CustomUserAgent
 from threading import Semaphore
 from rich.console import Console
 from rich.live import Live
