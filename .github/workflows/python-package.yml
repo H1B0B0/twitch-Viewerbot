@@ -57,7 +57,7 @@ jobs:
       - name: Build Windows Executable
         run: |
           .\venv\Scripts\activate
-          pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" `
+          pyinstaller --noconfirm --uac-admin --onefile --icon "frontend/public/favicon.ico" `
           --paths "venv/Lib/site-packages" `
           --add-data "backend;backend" `
           --add-data "frontend/out;static" `
@@ -109,7 +109,7 @@ jobs:
       - name: Build MacOS App
         run: |
           source venv/bin/activate
-          pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" \
+          pyinstaller --noconfirm --uac-admin --onefile --icon "frontend/public/favicon.ico" \
           --paths "venv/lib/python3.11/site-packages" \
           --add-data "backend:backend" \
           --add-data "frontend/out:static" \
