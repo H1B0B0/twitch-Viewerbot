@@ -11,7 +11,7 @@ on:
       - "main"
 
 jobs:
-  build-and-release:
+  build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -110,8 +110,109 @@ jobs:
           "backend/main.py" `
           --name "TwitchViewerBOT"
 
-      - name: Create Release
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          python -m pip install crypto
+          pip install .[dev]
+
+      - name: Create .env file
+        run: |
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> backend/.env
+          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" >> backend/.env
+          echo "CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}" >> backend/.env
+
+      - name: Execute build script
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Build MacOS App
+        run: |
+          pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" \
+          --add-data "backend/static:static/" \
+          --add-data "backend:backend/" \
+          --hidden-import "flask" \
+          --hidden-import "flask_cors" \
+          --hidden-import "flask_sqlalchemy" \
+          --hidden-import "flask_login" \
+          --hidden-import "flask_jwt_extended" \
+          --hidden-import "werkzeug" \
+          --hidden-import "gevent" \
+          --hidden-import "requests" \
+          --hidden-import "streamlink" \
+          --hidden-import "fake_useragent" \
+          --hidden-import "websocket" \
+          --hidden-import "aiohttp" \
+          --hidden-import "asyncio" \
+          --hidden-import "sqlite3" \
+          --hidden-import "sqlalchemy" \
+          --hidden-import "alembic" \
+          --hidden-import "cffi" \
+          --hidden-import "bcrypt" \
+          --hidden-import "jwt" \
+          --hidden-import "openai" \
+          --hidden-import "numpy" \
+          --hidden-import "torch" \
+          --hidden-import "transformers" \
+          --hidden-import "emoji" \
+          --hidden-import "rich" \
+          --hidden-import "customtkinter" \
+          --hidden-import "python-dotenv" \
+          --hidden-import "argparse" \
+          --hidden-import "decouple" \
+          --hidden-import "certifi" \
+          --hidden-import "cryptography" \
+          --hidden-import "discord" \
+          --hidden-import "selenium" \
+          --hidden-import "bs4" \
+          --hidden-import "cloudscraper" \
+          --hidden-import "schedule" \
+          --hidden-import "cachetools" \
+          "backend/main.py" \
+          --name "TwitchViewerBOT"
+
+      - name: Upload MacOS Asset
         if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/TwitchViewerBOT
+          asset_name: TwitchViewerBOT-MacOS
+          asset_content_type: application/octet-stream
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -123,56 +224,56 @@ jobs:
             # 🚀 TwitchViewerBOT Release Notes
 
             ## 🎯 Core Features
-            - **Multi-threading System**: Support jusqu'à 1000 threads simultanés
-            - **Proxy Support**: Compatible avec HTTP, SOCKS4, SOCKS5
-            - **Auto-update**: Mise à jour automatique du système
-            - **Cross-Platform**: Compatible Windows, Linux, MacOS
+            - **Multi-threading System**: Support for up to 1000 simultaneous threads
+            - **Proxy Support**: Compatible with HTTP, SOCKS4, SOCKS5
+            - **Auto-update**: Automatic system updates
+            - **Cross-Platform**: Compatible with Windows, Linux, MacOS
 
             ## 🆕 New Features
-            ### Interface Utilisateur
-            - 🖥️ Nouvelle interface React moderne et responsive
-            - 📊 Dashboard en temps réel avec statistiques
-            - 🌙 Mode sombre/clair
-            - 📱 Support mobile
+            ### User Interface
+            - 🖥️ Modern and responsive React interface
+            - 📊 Real-time dashboard with statistics
+            - 🌙 Dark/Light mode
+            - 📱 Mobile support
 
             ### Bot Features
-            - 🤖 Système de chat AI intégré
-            - 📈 Analytics avancés
-            - 🔄 Rotation automatique des proxies
-            - ⚡ Mode performances optimisées
-            - 🎮 Support multi-streams
+            - 🤖 Integrated AI chat system
+            - 📈 Advanced analytics
+            - 🔄 Automatic proxy rotation
+            - ⚡ Optimized performance mode
+            - 🎮 Multi-stream support
 
             ### Security
-            - 🔒 Authentification JWT
-            - 🛡️ Protection anti-détection
-            - 🔑 Gestion sécurisée des credentials
-            - 🌐 Support HTTPS/SSL
+            - 🔒 JWT Authentication
+            - 🛡️ Anti-detection protection
+            - 🔑 Secure credentials management
+            - 🌐 HTTPS/SSL Support
 
             ### Premium Features
-            - 💬 Chat bot AI personnalisé
-            - 📊 Stats détaillées
-            - 🔄 Auto-restart
-            - ⚡ Mode haute performance
-            - 📈 Scaling automatique
+            - 💬 Custom AI chatbot
+            - 📊 Detailed statistics
+            - 🔄 Auto-restart capability
+            - ⚡ High-performance mode
+            - 📈 Automatic scaling
 
             ## 🛠️ Technical Improvements
-            - Backend Flask optimisé
-            - Support asyncio pour meilleures performances
-            - Gestion mémoire améliorée
-            - Logs détaillés
-            - API RESTful documentée
+            - Optimized Flask backend
+            - Asyncio support for better performance
+            - Improved memory management
+            - Detailed logging
+            - Documented RESTful API
 
             ## 🐛 Bug Fixes
-            - Correction des fuites mémoire
-            - Amélioration stabilité connexions
-            - Fix déconnexions aléatoires
-            - Optimisation consommation CPU
+            - Memory leak fixes
+            - Connection stability improvements
+            - Random disconnection fixes
+            - CPU usage optimization
 
             ## 📚 Documentation
-            - Guide d'installation détaillé
-            - Documentation API
-            - Exemples d'utilisation
-            - Guide de dépannage
+            - Detailed installation guide
+            - API documentation
+            - Usage examples
+            - Troubleshooting guide
 
             ## 🔗 Links
             - [Documentation](https://docs.velbots.shop)
@@ -180,19 +281,19 @@ jobs:
             - [Premium Access](https://www.patreon.com/hibo/membership)
 
             ## 💻 Installation
-            1. Téléchargez l'exécutable
-            2. Lancez l'application
-            3. Connectez-vous avec Discord
-            4. Configurez vos paramètres
-            5. Démarrez le bot
+            1. Download the executable
+            2. Launch the application
+            3. Login with Discord
+            4. Configure your settings
+            5. Start the bot
 
             ## ⚠️ Requirements
-            - Windows 10/11 64-bit
+            - Windows 10/11 64-bit or MacOS 10.15+
             - 4GB RAM minimum
-            - Connexion Internet stable
+            - Stable internet connection
 
             ## 🆘 Support
-            Pour toute assistance, rejoignez notre Discord ou consultez la documentation.
+            For assistance, join our Discord or consult the documentation.
 
           draft: false
           prerelease: false
