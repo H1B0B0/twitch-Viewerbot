@@ -1,25 +1,14 @@
-import signal
 import sys
-import argparse
 import time
 import random
+import logging
 import requests
 import datetime
-from random import shuffle
 from threading import Thread
 from streamlink import Streamlink
-from ..utils.user_agent import CustomUserAgent
 from threading import Semaphore
 from rich.console import Console
-from rich.live import Live
-from rich.prompt import Prompt
-from rich.spinner import Spinner
-from rich.table import Table
-from rich.text import Text
-import logging
-from urllib3 import PoolManager
-from urllib3.util import Retry
-from requests.adapters import HTTPAdapter
+from fake_useragent import UserAgent
 
 # Add this near the top of the file, after imports
 logging.getLogger("urllib3").setLevel(logging.ERROR)

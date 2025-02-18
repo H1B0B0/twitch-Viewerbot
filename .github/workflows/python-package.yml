@@ -28,18 +28,19 @@ jobs:
           python-version: "3.11"
           architecture: "x64"
 
+      - name: Setup Python and venv
+        run: |
+          python -m venv venv
+          .\venv\Scripts\activate
+          python -m pip install --upgrade pip
+          python -m pip install wheel pyinstaller
+          pip install -r requirements.txt
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           npm install
           npm run build
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install wheel
-          python -m pip install pyinstaller
-          python -m pip install -e .
 
       - name: Create .env file
         run: |
@@ -55,22 +56,11 @@ jobs:
 
       - name: Build Windows Executable
         run: |
+          .\venv\Scripts\activate
           pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" `
+          --paths "venv/Lib/site-packages" `
           --add-data "backend;backend" `
           --add-data "frontend/out;static" `
-          --add-data "${env:pythonLocation}\Lib\site-packages\streamlink;streamlink" `
-          --add-data "${env:pythonLocation}\Lib\site-packages\fake_useragent;fake_useragent" `
-          --add-data "${env:pythonLocation}\Lib\site-packages\rich;rich" `
-          --collect-submodules flask `
-          --collect-submodules flask_jwt_extended `
-          --collect-submodules flask_cors `
-          --collect-submodules requests `
-          --collect-submodules cryptography `
-          --collect-submodules gevent `
-          --collect-submodules PyJWT `
-          --collect-submodules python_dotenv `
-          --collect-all greenlet `
-          --collect-all schedule `
           "backend/main.py" `
           --name "TwitchViewerBOT"
 
@@ -90,18 +80,19 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Setup Python and venv
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          pip install -r requirements.txt
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           npm install
           npm run build
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pyinstaller
-          python -m pip install crypto
-          pip install .[dev]
 
       - name: Create .env file
         run: |
@@ -117,22 +108,11 @@ jobs:
 
       - name: Build MacOS App
         run: |
+          source venv/bin/activate
           pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" \
+          --paths "venv/lib/python3.11/site-packages" \
           --add-data "backend:backend" \
           --add-data "frontend/out:static" \
-          --add-data "$PYTHONPATH/site-packages/streamlink:streamlink" \
-          --add-data "$PYTHONPATH/site-packages/fake_useragent:fake_useragent" \
-          --add-data "$PYTHONPATH/site-packages/rich:rich" \
-          --collect-submodules flask \
-          --collect-submodules flask_jwt_extended \
-          --collect-submodules flask_cors \
-          --collect-submodules requests \
-          --collect-submodules cryptography \
-          --collect-submodules gevent \
-          --collect-submodules PyJWT \
-          --collect-submodules python_dotenv \
-          --collect-all greenlet \
-          --collect-all schedule \
           "backend/main.py" \
           --name "TwitchViewerBOT"
 

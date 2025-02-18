@@ -1,9 +1,7 @@
 from flask import Blueprint, request, jsonify
 import os
-import time
 from werkzeug.utils import secure_filename
 from threading import Thread
-import sys
 
 # Update the import to use relative import
 from .viewer_bot import ViewerBot

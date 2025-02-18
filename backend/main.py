@@ -1,13 +1,12 @@
-from flask import Flask, send_from_directory, current_app, send_file, request, redirect, abort
+from flask import Flask, send_file, request, redirect, abort
 from flask_cors import CORS
 from functools import wraps
 import os
 import logging
 import jwt
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import webbrowser
-from api import api  # Import the API blueprint
+from api import api
 from gevent.pywsgi import WSGIServer
 
 # Set urllib3's logger level to WARNING

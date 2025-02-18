@@ -9,73 +9,38 @@ description = "Twitch Bot for making fake viewers on your live"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    # Base dependencies
-    "requests[socks]>=2.28.0",
-    "streamlink",
-    "fake_useragent",
-    
-    # Flask and related
+    # Core Web Framework
     "flask>=2.0.0",
     "flask-cors>=4.0.0",
-    "flask-sqlalchemy>=3.0.0",
-    "flask-login>=0.6.0",
     "flask-jwt-extended>=4.5.0",
     "werkzeug>=2.0.0",
-    "python-dotenv",
-    "gunicorn",
+    "python-dotenv>=0.19.0",
+    "gevent>=23.9.1",
     
-    # Database
-    "SQLAlchemy>=2.0.0",
-    "alembic>=1.0.0",
-    "psycopg2-binary",
+    # Network and Streaming
+    "requests[socks]>=2.28.0",
+    "streamlink>=5.0.0",
+    "fake-useragent>=1.1.1",
     
-    # UI and formatting
-    "rich",
-    "customtkinter",
-    "emoji",
+    # Security
+    "PyJWT>=2.6.0",
+    "cryptography>=40.0.0",
     
-    # Security and encryption
-    "pycryptodome",
-    "cffi",
-    "bcrypt",
-    "PyJWT",
-    
-    # Async support
-    "aiohttp>=3.8.0",
-    "asgiref>=3.7.0",
-    
-    # ML/AI dependencies
-    "torch",
-    "numpy",
-    "openai",
-    
-    # Utilities
-    "python-decouple",
-    "argparse",
-
-    "certbot",
-    "cryptography",
-    "requests",
-    "Werkzeug",
-    "gevent"
+    # UI and Formatting
+    "rich>=13.0.0"
 ]
 
 [project.optional-dependencies]
 test = [
-    "pytest",
-    "pytest-flask",
-    "pytest-asyncio",
-    "pytest-cov",
-    "python-decouple",
-    "faster_whisper",
-    "torch",
-    "transformers",
+    "pytest>=7.0.0",
+    "pytest-flask>=1.2.0"
 ]
 
 dev = [
-    "black",
-    "flake8",
-    "isort",
-    "mypy",
-    "pre-commit",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0"
 ]
+
+[project.scripts]
+twitchbot = "backend.main:main"
