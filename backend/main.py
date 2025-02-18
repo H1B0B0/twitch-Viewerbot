@@ -115,7 +115,7 @@ def after_request(response):
 # Ajoutez cette fonction avant le if __name__ == '__main__':
 def open_browser():
     print("Opening browser...")
-    # webbrowser.open('http://localhost:3001')
+    webbrowser.open('https://velbots.shop')
 
 if __name__ == '__main__':
     # Create uploads directory if it doesn't exist

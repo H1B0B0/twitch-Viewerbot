@@ -60,8 +60,6 @@ jobs:
           --add-data "frontend/out:static" `
           --hidden-import "flask" `
           --hidden-import "flask_cors" `
-          --hidden-import "flask_sqlalchemy" `
-          --hidden-import "flask_login" `
           --hidden-import "flask_jwt_extended" `
           --hidden-import "werkzeug" `
           --hidden-import "gevent" `
@@ -69,44 +67,17 @@ jobs:
           --hidden-import "streamlink" `
           --hidden-import "fake_useragent" `
           --hidden-import "websocket" `
-          --hidden-import "aiohttp" `
-          --hidden-import "asyncio" `
-          --hidden-import "sqlite3" `
-          --hidden-import "sqlalchemy" `
-          --hidden-import "alembic" `
-          --hidden-import "cffi" `
-          --hidden-import "bcrypt" `
-          --hidden-import "jwt" `
-          --hidden-import "openai" `
-          --hidden-import "numpy" `
-          --hidden-import "torch" `
-          --hidden-import "transformers" `
-          --hidden-import "emoji" `
           --hidden-import "rich" `
-          --hidden-import "customtkinter" `
           --hidden-import "python-dotenv" `
-          --hidden-import "argparse" `
-          --hidden-import "decouple" `
-          --hidden-import "certifi" `
-          --hidden-import "cryptography" `
-          --hidden-import "discord" `
-          --hidden-import "selenium" `
-          --hidden-import "bs4" `
-          --hidden-import "cloudscraper" `
           --hidden-import "schedule" `
-          --hidden-import "cachetools" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\customtkinter;customtkinter/" `
+          --hidden-import "greenlet" `
+          --hidden-import "pycryptodome" `
+          --hidden-import "PyJWT" `
+          --hidden-import "cryptography" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cffi;cffi/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\websocket;websocket/" `
           --add-data "${env:pythonLocation}\\Lib\\site-packages\\rich;rich/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\emoji;emoji/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\openai;openai/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\torch;torch/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\transformers;transformers/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\discord;discord/" `
           "backend/main.py" `
           --name "TwitchViewerBOT"
 
@@ -154,12 +125,10 @@ jobs:
       - name: Build MacOS App
         run: |
           pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" \
-          --add-data "backend/static:static/" \
-          --add-data "backend:backend/" \
+          --add-data "backend:backend" \
+          --add-data "frontend/out:static" \
           --hidden-import "flask" \
           --hidden-import "flask_cors" \
-          --hidden-import "flask_sqlalchemy" \
-          --hidden-import "flask_login" \
           --hidden-import "flask_jwt_extended" \
           --hidden-import "werkzeug" \
           --hidden-import "gevent" \
@@ -167,32 +136,13 @@ jobs:
           --hidden-import "streamlink" \
           --hidden-import "fake_useragent" \
           --hidden-import "websocket" \
-          --hidden-import "aiohttp" \
-          --hidden-import "asyncio" \
-          --hidden-import "sqlite3" \
-          --hidden-import "sqlalchemy" \
-          --hidden-import "alembic" \
-          --hidden-import "cffi" \
-          --hidden-import "bcrypt" \
-          --hidden-import "jwt" \
-          --hidden-import "openai" \
-          --hidden-import "numpy" \
-          --hidden-import "torch" \
-          --hidden-import "transformers" \
-          --hidden-import "emoji" \
           --hidden-import "rich" \
-          --hidden-import "customtkinter" \
           --hidden-import "python-dotenv" \
-          --hidden-import "argparse" \
-          --hidden-import "decouple" \
-          --hidden-import "certifi" \
-          --hidden-import "cryptography" \
-          --hidden-import "discord" \
-          --hidden-import "selenium" \
-          --hidden-import "bs4" \
-          --hidden-import "cloudscraper" \
           --hidden-import "schedule" \
-          --hidden-import "cachetools" \
+          --hidden-import "greenlet" \
+          --hidden-import "pycryptodome" \
+          --hidden-import "PyJWT" \
+          --hidden-import "cryptography" \
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
