@@ -56,23 +56,21 @@ jobs:
       - name: Build Windows Executable
         run: |
           pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" `
-          --add-data "backend:backend" `
-          --add-data "frontend/out:static" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\streamlink;streamlink/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\fake_useragent;fake_useragent/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\Crypto;Crypto/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\rich;rich/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\pycryptodome;pycryptodome/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\PyJWT;PyJWT/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\cryptography;cryptography/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\greenlet;greenlet/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\schedule;schedule/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\python-dotenv;python-dotenv/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\requests;requests/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\gevent;gevent/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\flask_jwt_extended;flask_jwt_extended/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\flask_cors;flask_cors/" `
-          --add-data "${env:pythonLocation}\\Lib\\site-packages\\flask;flask/" `
+          --add-data "backend;backend" `
+          --add-data "frontend/out;static" `
+          --add-data "${env:pythonLocation}\Lib\site-packages\streamlink;streamlink" `
+          --add-data "${env:pythonLocation}\Lib\site-packages\fake_useragent;fake_useragent" `
+          --add-data "${env:pythonLocation}\Lib\site-packages\rich;rich" `
+          --collect-submodules flask `
+          --collect-submodules flask_jwt_extended `
+          --collect-submodules flask_cors `
+          --collect-submodules requests `
+          --collect-submodules cryptography `
+          --collect-submodules gevent `
+          --collect-submodules PyJWT `
+          --collect-submodules python_dotenv `
+          --collect-all greenlet `
+          --collect-all schedule `
           "backend/main.py" `
           --name "TwitchViewerBOT"
 
@@ -124,19 +122,17 @@ jobs:
           --add-data "frontend/out:static" \
           --add-data "$PYTHONPATH/site-packages/streamlink:streamlink" \
           --add-data "$PYTHONPATH/site-packages/fake_useragent:fake_useragent" \
-          --add-data "$PYTHONPATH/site-packages/Crypto:Crypto" \
           --add-data "$PYTHONPATH/site-packages/rich:rich" \
-          --add-data "$PYTHONPATH/site-packages/pycryptodome:pycryptodome" \
-          --add-data "$PYTHONPATH/site-packages/PyJWT:PyJWT" \
-          --add-data "$PYTHONPATH/site-packages/cryptography:cryptography" \
-          --add-data "$PYTHONPATH/site-packages/greenlet:greenlet" \
-          --add-data "$PYTHONPATH/site-packages/schedule:schedule" \
-          --add-data "$PYTHONPATH/site-packages/python-dotenv:python-dotenv" \
-          --add-data "$PYTHONPATH/site-packages/requests:requests" \
-          --add-data "$PYTHONPATH/site-packages/gevent:gevent" \
-          --add-data "$PYTHONPATH/site-packages/flask_jwt_extended:flask_jwt_extended" \
-          --add-data "$PYTHONPATH/site-packages/flask_cors:flask_cors" \
-          --add-data "$PYTHONPATH/site-packages/flask:flask" \
+          --collect-submodules flask \
+          --collect-submodules flask_jwt_extended \
+          --collect-submodules flask_cors \
+          --collect-submodules requests \
+          --collect-submodules cryptography \
+          --collect-submodules gevent \
+          --collect-submodules PyJWT \
+          --collect-submodules python_dotenv \
+          --collect-all greenlet \
+          --collect-all schedule \
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
