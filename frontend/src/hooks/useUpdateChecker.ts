@@ -4,7 +4,7 @@ import axios from "axios";
 
 const GITHUB_API =
   "https://api.github.com/repos/H1B0B0/twitch-Viewerbot/releases/latest";
-const CURRENT_VERSION = "3.0.2";
+const CURRENT_VERSION = "3.0.3";
 
 interface GithubRelease {
   tag_name: string;
@@ -28,7 +28,6 @@ export function useUpdateChecker() {
         const response = await axios.get<GithubRelease>(GITHUB_API);
         const latest = response.data;
 
-        // Comparer les versions (sans le 'v' initial)
         const isNewer = latest.tag_name.replace("v", "") > CURRENT_VERSION;
 
         if (isNewer) {
@@ -40,7 +39,6 @@ export function useUpdateChecker() {
       }
     };
 
-    // Vérifier au démarrage et toutes les 24 heures
     checkForUpdates();
     const interval = setInterval(checkForUpdates, 24 * 60 * 60 * 1000);
 

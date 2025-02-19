@@ -130,7 +130,6 @@ def serve_frontend(path):
     # Fallback to serving index.html
     return send_file(os.path.join(app.static_folder, 'index.html'))
 
-# Ajoutez ces headers à toutes les réponses
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
@@ -139,7 +138,6 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-# Ajoutez cette fonction avant le if __name__ == '__main__':
 def open_browser():
     print("Opening browser...")
     webbrowser.open('https://velbots.shop')
@@ -155,7 +153,6 @@ if __name__ == '__main__':
         logger.error(f"Static folder not found: {app.static_folder}")
         exit(1)
     
-    # Lancer le navigateur après un court délai
     from threading import Timer
     Timer(1.5, open_browser).start()
 

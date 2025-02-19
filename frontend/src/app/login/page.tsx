@@ -17,19 +17,30 @@ export default function LoginPage() {
       const username = formData.get("username") as string;
       const password = formData.get("password") as string;
 
-      await login({ username, password });
+      const response = await login({ username, password });
 
-      toast.success("Successfully logged in!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      router.push("/");
+      if (response.ok) {
+        toast.success("Successfully logged in!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        router.push("/");
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      let errorMessage = "An unexpected error occurred";
+
+      if (err instanceof Error) {
+        if (err.message.includes("401")) {
+          errorMessage = "Invalid username or password";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
       toast.error(errorMessage, {
         position: "top-right",

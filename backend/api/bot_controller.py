@@ -28,7 +28,7 @@ class BotManager:
             'alive_proxies': 0
         }
         self.is_running = False
-        self.last_channel = None  # Ajouter cette ligne
+        self.last_channel = None
 
     def start_bot(self, channel_name, threads, proxy_file=None, timeout=1000, proxy_type="http"):
         if self.is_running:
@@ -50,7 +50,7 @@ class BotManager:
         self.bot_thread = Thread(target=run_bot)
         self.bot_thread.daemon = True
         self.bot_thread.start()
-        self.last_channel = channel_name  # Sauvegarder le nom du canal
+        self.last_channel = channel_name
         return True
 
     def stop_bot(self):

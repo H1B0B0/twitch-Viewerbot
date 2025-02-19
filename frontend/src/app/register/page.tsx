@@ -9,29 +9,88 @@ import { RegisterData } from "../types/User";
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    twitchUsername: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [validationError, setValidationError] = useState<{
+    username?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const router = useRouter();
 
-  async function handleRegister(formData: FormData) {
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+      return "Password must contain at least one special character (!@#$%^&*)";
+    }
+    return null;
+  };
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+  const validateUsername = (username: string): string | null => {
+    if (username.length < 3 || username.length > 20) {
+      return "Username must be between 3 and 20 characters long";
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return "Username can only contain letters, numbers, underscores and hyphens";
+    }
+    return null;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  async function handleRegister(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setValidationError({});
+
+    // Validate username
+    const usernameError = validateUsername(formData.username);
+    if (usernameError) {
+      setValidationError((prev) => ({ ...prev, username: usernameError }));
+      return;
+    }
+
+    // Validate password
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setValidationError((prev) => ({ ...prev, password: passwordError }));
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setValidationError((prev) => ({
+        ...prev,
+        confirmPassword: "Passwords do not match",
+      }));
       return;
     }
 
     const registerData: RegisterData = {
-      username: formData.get("username") as string,
-      TwitchUsername: formData.get("twitch username") as string,
-      email: formData.get("email") as string,
-      password: password,
+      username: formData.username,
+      TwitchUsername: formData.twitchUsername,
+      email: formData.email,
+      password: formData.password,
     };
 
     try {
@@ -72,7 +131,7 @@ export default function RegisterPage() {
             Create Account
           </h2>
         </CardHeader>
-        <Form className="mt-8 space-y-6" action={handleRegister}>
+        <Form className="mt-8 space-y-6" onSubmit={handleRegister}>
           <CardBody className="space-y-6">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-100 rounded-lg">
@@ -80,16 +139,44 @@ export default function RegisterPage() {
               </div>
             )}
             <div>
-              <Input type="text" name="username" label="Username" required />
+              <Input
+                type="text"
+                name="username"
+                label="Username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                minLength={3}
+                maxLength={20}
+                pattern="[a-zA-Z0-9_-]+"
+                title="Username can only contain letters, numbers, underscores and hyphens"
+              />
+              {validationError.username && (
+                <p className="mt-1 text-xs text-red-500">
+                  {validationError.username}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                3-20 characters, letters, numbers, underscores and hyphens only
+              </p>
             </div>
             <div>
-              <Input type="email" name="email" label="Email" required />
+              <Input
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div>
               <Input
                 type="text"
-                name="twitch username"
+                name="twitchUsername"
                 label="Twitch Username"
+                value={formData.twitchUsername}
+                onChange={handleChange}
                 required
               />
             </div>
@@ -98,16 +185,36 @@ export default function RegisterPage() {
                 type="password"
                 name="password"
                 label="Password"
+                value={formData.password}
+                onChange={handleChange}
                 required
+                minLength={8}
+                title="Password must be at least 8 characters long, contain uppercase and lowercase letters, numbers and special characters"
               />
+              {validationError.password && (
+                <p className="mt-1 text-xs text-red-500">
+                  {validationError.password}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Minimum 8 characters, must include uppercase, lowercase, number
+                and special character
+              </p>
             </div>
             <div>
               <Input
                 type="password"
                 name="confirmPassword"
                 label="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 required
               />
+              {validationError.confirmPassword && (
+                <p className="mt-1 text-xs text-red-500">
+                  {validationError.confirmPassword}
+                </p>
+              )}
             </div>
             <div>
               <Button

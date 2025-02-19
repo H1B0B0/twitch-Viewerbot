@@ -30,7 +30,7 @@ export default function ViewerBotInterface() {
     messagesPerMinute: 1,
     enableChat: false,
     proxyType: "http",
-    timeout: 1000,
+    timeout: 10000,
   });
   const { viewerCount: currentViewers } = useViewerCount(
     config?.channelName || profile?.user?.TwitchUsername
@@ -116,10 +116,11 @@ export default function ViewerBotInterface() {
           // Restaurer la configuration du bot si elle existe
           if (stats.config) {
             const { threads, timeout, proxy_type } = stats.config;
+            const parsedTimeout = parseInt(timeout, 10);
             setConfig((prevConfig) => ({
               ...prevConfig,
               threads: threads ?? prevConfig.threads,
-              timeout: timeout ?? prevConfig.timeout,
+              timeout: Number.isNaN(parsedTimeout) ? 10000 : parsedTimeout,
               proxyType: proxy_type ?? prevConfig.proxyType,
               channelName: stats.channel_name || prevConfig.channelName,
             }));
