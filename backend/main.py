@@ -53,10 +53,10 @@ app.config['JWT_SECRET'] = JWT_SECRET
 CORS(app, 
      resources={
          r"/*": {
-             "origins": ["http://localhost:3000", "http://localhost:3001"],
+             "origins": ["http://localhost:3000", "http://localhost:3001", "https://velbots.shop"],
              "methods": ["GET", "POST", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization"],
-             "expose_headers": ["Set-Cookie"]
+             "supports_credentials": True
          }
      })
 
@@ -65,7 +65,13 @@ app.register_blueprint(api, url_prefix='/api')
 
 def verify_token(token):
     try:
-        jwt.decode(token, app.config['JWT_SECRET'], algorithms=["HS256"])
+        # Add leeway parameter to handle time differences
+        jwt.decode(
+            token, 
+            app.config['JWT_SECRET'], 
+            algorithms=["HS256"],
+            leeway=5
+        )
         return True
     except jwt.InvalidTokenError as e:
         logger.error(f"Token verification failed: {e}")
@@ -76,43 +82,69 @@ def auth_middleware(f):
     def decorated_function(*args, **kwargs):
         path = request.path
         logger.info(f"Current path: {path}")
+
+        # Liste des ressources statiques à ignorer
+        static_resources = [
+            'favicon.ico',
+            '.js',
+            '.css',
+            '.png',
+            '.jpg',
+            '.jpeg',
+            '.gif',
+            '.svg',
+            '.woff',
+            '.woff2',
+            '.ttf',
+            '.eot'
+        ]
         
-        # Skip middleware for API routes and static files
-        if path.startswith(('/api/', '/_next/', '/static/', '/images/')) or \
-           path.endswith(('.js', '.css', '.ico', '.png', '.jpg', '.jpeg', '.gif')):
+        # Vérifier si c'est une ressource statique
+        is_static = any(path.endswith(ext) for ext in static_resources) or \
+                   path.startswith(('/api/', '/_next/', '/static/', '/images/'))
+                   
+        if is_static:
             return f(*args, **kwargs)
 
-        # Make /login and /register public, even with query params
-        if path.startswith('/login') or path.startswith('/register'):
-            return f(*args, **kwargs)
-
-        # Get token
+        # Get token and check authentication
         token = request.cookies.get('access_token')
         is_authenticated = token and verify_token(token)
+        logger.info(f"Is authenticated: {is_authenticated}")
 
+        # Si l'utilisateur est authentifié et essaie d'accéder à login/register
+        if is_authenticated and path in ['/login', '/register']:
+            logger.info("Redirecting authenticated user from login/register to home")
+            return redirect('/')
+
+        # Check if path should bypass auth
+        is_public_path = path in ['/login', '/register']
+        if is_public_path and not is_authenticated:
+            return f(*args, **kwargs)
+
+        # If not authenticated and not a public path, redirect to login
         if not is_authenticated:
             logger.info("Redirecting to login - not authenticated")
             return redirect('/login')
-
-        if is_authenticated and (path == '/login' or path == '/login.html'):
-            logger.info("Redirecting authenticated user from login to home")
-            return redirect('/')
 
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/login')
+@auth_middleware  # Ajouter le middleware ici
 def serve_login():
     # If you have a login.html in static/
     login_file = os.path.join(app.static_folder, 'login.html')
+    logger.info(f"Login file path: {login_file}")
     if os.path.exists(login_file):
         return send_file(login_file)
     return abort(404)
 
 @app.route('/register')
+@auth_middleware  # Ajouter le middleware ici
 def serve_register():
     # If you have a register.html in static/
     register_file = os.path.join(app.static_folder, 'register.html')
+    logger.info(f"Register file path: {register_file}")
     if os.path.exists(register_file):
         return send_file(register_file)
     return abort(404)
@@ -132,10 +164,12 @@ def serve_frontend(path):
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    origin = request.headers.get('Origin')
+    if origin in ["http://localhost:3000", "http://localhost:3001", "https://velbots.shop"]:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
 def open_browser():

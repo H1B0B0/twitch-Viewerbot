@@ -152,11 +152,16 @@ jobs:
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
+      - name: zip the app
+        run: |
+          cd dist
+          zip -r TwitchViewerBOT-MacOS.zip TwitchViewerBOT
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: dist/TwitchViewerBOT
+          path: dist/TwitchViewerBOT-MacOS.zip
 
   create-release:
     needs: [build-windows, build-macos]
@@ -180,8 +185,9 @@ jobs:
             # 🚀 TwitchViewerBOT Release Notes V3.0.3
 
             ## Fix
-            - Fixed some little bugs
-            - Improved performance
+            - Fix Network Error
+            - Fix bot viewers never stop
+            - Fix middlewares not working
 
           draft: false
           prerelease: false
@@ -202,6 +208,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-build/TwitchViewerBOT
-          asset_name: TwitchViewerBOT-MacOS
-          asset_content_type: application/octet-stream
+          asset_path: ./artifacts/macos-build/TwitchViewerBOT-MacOS.zip
+          asset_name: TwitchViewerBOT-MacOS.zip
+          asset_content_type: application/zip

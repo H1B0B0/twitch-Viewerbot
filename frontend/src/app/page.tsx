@@ -15,13 +15,11 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { StatCard } from "../components/StatCard";
 import { useGetProfile, logout } from "./functions/UserAPI";
-import { useRouter } from "next/navigation";
 import { useViewerCount } from "../hooks/useViewerCount";
 import { ViewerStatCard } from "../components/ViewerStatCard";
 import { startBot, stopBot, getBotStats } from "./functions/BotAPI";
 
 export default function ViewerBotInterface() {
-  const router = useRouter();
   const { data: profile } = useGetProfile();
   const [config, setConfig] = useState({
     threads: 0,
@@ -167,29 +165,33 @@ export default function ViewerBotInterface() {
 
   const handleStop = async () => {
     try {
+      setIsLoading(false); // Set loading to false immediately
       await stopBot();
       toast.success("Bot stopped successfully!");
-      setIsLoading(false);
-      // Reset stats when stopping
       setStats((prevStats) => ({
         ...prevStats,
         activeThreads: 0,
-        requests: 0,
+        request_count: 0,
       }));
     } catch (err) {
       toast.error("Failed to stop bot");
+      setIsLoading(true); // Revert loading state if stop fails
       console.error("Failed to stop bot:", err);
-      // Keep isLoading true if stop fails
     }
   };
 
   const handleLogout = async () => {
     try {
+      if (isLoading) {
+        await stopBot();
+        setIsLoading(false);
+      }
       await logout();
       toast.success("Logged out successfully!");
-      router.push("/login");
-    } catch {
+      window.location.href = "/login";
+    } catch (error) {
       toast.error("Failed to logout");
+      console.error("Logout error:", error);
     }
   };
 

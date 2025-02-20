@@ -3,13 +3,11 @@ import { Form, Input, Button, Card, CardHeader, CardBody } from "@heroui/react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { login } from "../functions/UserAPI";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   async function handleLogin(formData: FormData) {
     try {
@@ -17,19 +15,17 @@ export default function LoginPage() {
       const username = formData.get("username") as string;
       const password = formData.get("password") as string;
 
-      const response = await login({ username, password });
+      await login({ username, password });
 
-      if (response.ok) {
-        toast.success("Successfully logged in!", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        router.push("/");
-      }
+      toast.success("Successfully logged in!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      window.location.href = "/";
     } catch (err) {
       let errorMessage = "An unexpected error occurred";
 
@@ -117,7 +113,7 @@ export default function LoginPage() {
                 <Button
                   variant="ghost"
                   className="text-sm text-blue-600 hover:text-blue-800"
-                  onPress={() => router.push("/register")}
+                  onPress={() => (window.location.href = "/register")}
                 >
                   Register now
                 </Button>

@@ -2,7 +2,7 @@ import axios from "axios";
 import { RegisterData, LoginData } from "../types/User";
 import useSWR from "swr";
 
-const URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
+const URL = "https://api.velbots.shop";
 
 const fetcher = async (url: string) => {
   const response = await axios.get(url, { withCredentials: true });

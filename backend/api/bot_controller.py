@@ -55,13 +55,34 @@ class BotManager:
 
     def stop_bot(self):
         if self.bot and self.is_running:
-            self.bot.stop()
-            self.is_running = False
+            self.is_running = False  # Set this to False immediately
+            # Start a new thread to handle the cleanup
+            def cleanup():
+                self.bot.stop()
+                
+            cleanup_thread = Thread(target=cleanup)
+            cleanup_thread.daemon = True
+            cleanup_thread.start()
             return True
         return False
 
     def get_stats(self):
         if self.bot:
+            # If bot is stopping, return 0 for active threads
+            if not self.is_running:
+                return {
+                    'requests': self.bot.request_count,
+                    'active_threads': 0,
+                    'total_proxies': 0,
+                    'alive_proxies': 0,
+                    'is_running': False,
+                    'channel_name': self.last_channel,
+                    'config': {
+                        'threads': self.bot.nb_of_threads,
+                        'timeout': self.bot.timeout,
+                        'proxy_type': self.bot.type_of_proxy,
+                    }
+                }
             return {
                 'requests': self.bot.request_count,
                 'active_threads': self.bot.active_threads,
@@ -139,7 +160,7 @@ def get_stats():
 @bot_api.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', 'https://velbots.shop')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response

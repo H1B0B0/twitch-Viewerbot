@@ -101,11 +101,18 @@ class ViewerBot:
 
     def stop(self):
         console.print("[bold red]Bot has been stopped[/bold red]")        
-        self.should_stop = True # Set the flag to stop the bot
-        self.active_threads = 0  # Reset active threads count
-        self.all_proxies = []  # Clear proxies list
-        self.should_stop = True  # Reset the flag
-        logging.debug("Bot stopped")
+        self.should_stop = True
+        
+        # Attendre que tous les threads se terminent
+        for thread in self.processes:
+            if thread.is_alive():
+                thread.join(timeout=1)  # Timeout de 1 seconde par thread
+        
+        # Vider la liste des threads
+        self.processes.clear()
+        self.active_threads = 0
+        self.all_proxies = []
+        logging.debug("Bot stopped and all threads cleaned up")
 
     def open_url(self, proxy_data):
         self.active_threads += 1
@@ -139,19 +146,33 @@ class ViewerBot:
         start = datetime.datetime.now()
         proxies = self.get_proxies()
         
+        if not proxies:
+            console.print("[bold red]No proxies available. Stopping bot.[/bold red]")
+            self.should_stop = True
+            return
+
         # Initialize all_proxies only once
         self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
         logging.debug(f"Initial proxies: {self.all_proxies}")
         
+        self.processes = []
+        
         while True:
+            if len(self.all_proxies) == 0:
+                console.print("[bold red]No proxies available. Stopping bot.[/bold red]")
+                break
+
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
             for i in range(0, int(self.nb_of_threads)):
                 acquired = self.thread_semaphore.acquire()
-                if acquired:
+                if acquired and len(self.all_proxies) > 0:  # Vérifier à nouveau avant de créer le thread
                     threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
+                    self.processes.append(threaded)
                     threaded.daemon = True
                     threaded.start()
+                elif acquired:
+                    self.thread_semaphore.release()  # Relâcher le sémaphore si on ne peut pas créer de thread
 
             if elapsed_seconds >= 300 and self.proxy_imported == False:
                 # Refresh the proxies after 300 seconds (5 minutes)
@@ -165,4 +186,14 @@ class ViewerBot:
 
             if self.should_stop:
                 logging.debug("Stopping main loop")
-                sys.exit()
+                # Relâcher tous les sémaphores restants
+                for _ in range(self.nb_of_threads):
+                    try:
+                        self.thread_semaphore.release()
+                    except ValueError:
+                        pass  # Ignore si déjà relâché
+                break
+
+        for t in self.processes:
+            t.join()
+        console.print("[bold red]Bot main loop ended[/bold red]")
