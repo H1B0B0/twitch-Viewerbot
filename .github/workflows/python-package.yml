@@ -69,7 +69,7 @@ jobs:
           --add-data "venv/Lib/site-packages/websocket;websocket" `
           --add-data "venv/Lib/site-packages/cffi;cffi" `
           --add-data "venv/Lib/site-packages/Crypto;Crypto" `
-          --add-date "venv/lib/python3.11/site-packages/psutil:psutil" `
+          --add-data "venv/Lib/site-packages/psutil;psutil" `
           --collect-data fake_useragent `
           --collect-submodules streamlink `
           --collect-submodules websocket `
@@ -139,16 +139,18 @@ jobs:
           --add-data "backend/.env:." \
           --add-data "frontend/out:static" \
           --add-data "venv/lib/python3.11/site-packages/fake_useragent/data:fake_useragent/data" \
+          --add-data "venv/lib/python3.11/site-packages/fake_useragent:fake_useragent" \
           --add-data "venv/lib/python3.11/site-packages/streamlink:streamlink" \
           --add-data "venv/lib/python3.11/site-packages/websocket:websocket" \
           --add-data "venv/lib/python3.11/site-packages/cffi:cffi" \
           --add-data "venv/lib/python3.11/site-packages/Crypto:Crypto" \
-          --add-date "venv/lib/python3.11/site-packages/psutil:psutil" \
+          --add-data "venv/lib/python3.11/site-packages/psutil:psutil" \
           --collect-data fake_useragent \
           --collect-submodules streamlink \
           --collect-submodules websocket \
           --collect-submodules cffi \
           --collect-submodules Crypto \
+          --hidden-import rich \
           --hidden-import dotenv \
           --hidden-import trio \
           "backend/main.py" \
