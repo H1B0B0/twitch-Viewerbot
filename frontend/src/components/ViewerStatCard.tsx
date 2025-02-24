@@ -34,18 +34,18 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative h-full">
       {showGlow && (
         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-purple-500/30 rounded-lg blur-xl animate-pulse" />
       )}
       <Card
         className={cn(
-          "relative border-none bg-default-50/50 backdrop-blur-md transition-all duration-300",
+          "relative h-full border-none bg-background/90 backdrop-blur-xl transition-all duration-300",
           showGlow && "ring-2 ring-purple-500/50"
         )}
         shadow="sm"
       >
-        <CardBody className="space-y-4 p-6">
+        <CardBody className="space-y-4 p-6 flex flex-col justify-between h-full">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider">
               Live Viewers

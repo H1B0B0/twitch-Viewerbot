@@ -2,6 +2,11 @@ from flask import Blueprint, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from threading import Thread
+import psutil
+import logging
+import time
+
+logger = logging.getLogger(__name__)
 
 # Update the import to use relative import
 from .viewer_bot import ViewerBot
@@ -29,6 +34,14 @@ class BotManager:
         }
         self.is_running = False
         self.last_channel = None
+        self.last_net_io = psutil.net_io_counters()
+        self.last_net_io_time = time.time()
+        self.default_metrics = {
+            'cpu': 0,
+            'memory': 0,
+            'network_up': 0,
+            'network_down': 0
+        }
 
     def start_bot(self, channel_name, threads, proxy_file=None, timeout=1000, proxy_type="http"):
         if self.is_running:
@@ -67,36 +80,67 @@ class BotManager:
         return False
 
     def get_stats(self):
-        if self.bot:
-            # If bot is stopping, return 0 for active threads
-            if not self.is_running:
-                return {
-                    'requests': self.bot.request_count,
-                    'active_threads': 0,
-                    'total_proxies': 0,
-                    'alive_proxies': 0,
-                    'is_running': False,
-                    'channel_name': self.last_channel,
-                    'config': {
-                        'threads': self.bot.nb_of_threads,
-                        'timeout': self.bot.timeout,
-                        'proxy_type': self.bot.type_of_proxy,
-                    }
+        try:
+            if self.bot:
+                current_net_io = psutil.net_io_counters()
+                current_time = time.time()
+                time_delta = max(current_time - self.last_net_io_time, 0.1)
+                
+                bytes_sent = (current_net_io.bytes_sent - self.last_net_io.bytes_sent) / time_delta
+                bytes_recv = (current_net_io.bytes_recv - self.last_net_io.bytes_recv) / time_delta
+                
+                self.last_net_io = current_net_io
+                self.last_net_io_time = current_time
+
+                system_metrics = {
+                    'cpu': psutil.cpu_percent() or 0,
+                    'memory': psutil.virtual_memory().percent or 0,
+                    'network_up': max(bytes_sent / (1024 * 1024), 0),  # Ensure non-negative
+                    'network_down': max(bytes_recv / (1024 * 1024), 0)  # Ensure non-negative
                 }
+            else:
+                system_metrics = self.default_metrics
+
             return {
-                'requests': self.bot.request_count,
-                'active_threads': self.bot.active_threads,
-                'total_proxies': len(self.bot.all_proxies),
+                'requests': getattr(self.bot, 'request_count', 0),
+                'active_threads': self.bot.active_threads if (self.bot and self.is_running) else 0,
+                'total_proxies': len(self.bot.all_proxies) if (self.bot and self.is_running) else 0,
                 'alive_proxies': self.stats['alive_proxies'],
                 'is_running': self.is_running,
                 'channel_name': self.last_channel,
                 'config': {
-                    'threads': self.bot.nb_of_threads,
-                    'timeout': self.bot.timeout,
-                    'proxy_type': self.bot.type_of_proxy,
-                }
+                    'threads': getattr(self.bot, 'nb_of_threads', 0),
+                    'timeout': getattr(self.bot, 'timeout', 10000),
+                    'proxy_type': getattr(self.bot, 'type_of_proxy', 'http'),
+                },
+                'status': getattr(self.bot, 'status', {
+                    'state': 'stopped',
+                    'message': 'Bot is not running',
+                    'proxy_count': 0,
+                    'proxy_loading_progress': 0,
+                    'startup_progress': 0
+                }),
+                'system_metrics': system_metrics
             }
-        return self.stats
+        except Exception as e:
+            logger.error(f"Error getting stats: {e}")
+            return {
+                'requests': 0,
+                'active_threads': 0,
+                'total_proxies': 0,
+                'alive_proxies': 0,
+                'is_running': False,
+                'channel_name': None,
+                'config': {},
+                'status': {
+                    'state': 'error',
+                    'message': 'Error getting stats',
+                    'proxy_count': 0,
+                    'proxy_loading_progress': 0,
+                    'startup_progress': 0
+                },
+                'system_metrics': self.default_metrics
+            }
 
 bot_manager = BotManager()
 
@@ -147,15 +191,25 @@ def stop_bot():
 @bot_api.route('/stats', methods=['GET'])
 def get_stats():
     stats = bot_manager.get_stats()
-    return jsonify({
+    response_data = {
         'active_threads': stats['active_threads'],
         'total_proxies': stats['total_proxies'],
         'alive_proxies': stats['alive_proxies'],
         'request_count': stats['requests'],
         'is_running': stats.get('is_running', False),
         'channel_name': stats.get('channel_name', None),
-        'config': stats.get('config', {})
-    })
+        'config': stats.get('config', {}),
+        'status': stats.get('status', {
+            'state': 'stopped',
+            'message': 'Bot is not running',
+            'proxy_count': 0,
+            'proxy_loading_progress': 0,
+            'startup_progress': 0
+        }),
+        'system_metrics': stats.get('system_metrics', {})
+    }
+    
+    return jsonify(response_data)
 
 @bot_api.after_request
 def after_request(response):

@@ -17,3 +17,6 @@ cryptography>=40.0.0
 
 # UI and Formatting
 rich>=13.0.0
+
+# Monitoring
+psutil>=7.0.0

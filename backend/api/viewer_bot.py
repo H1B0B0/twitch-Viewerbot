@@ -9,6 +9,7 @@ from streamlink import Streamlink
 from threading import Semaphore
 from rich.console import Console
 from fake_useragent import UserAgent
+from urllib.parse import urlparse
 
 # Add this near the top of the file, after imports
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -45,12 +46,19 @@ class ViewerBot:
         self.thread_semaphore = Semaphore(int(nb_of_threads))  # Semaphore to control thread count
         self.active_threads = 0
         self.should_stop = False
-        self.timeout = (5, 10)  # (connect timeout, read timeout)
+        self.timeout = timeout
         self.type_of_proxy = type_of_proxy
         self.proxies = []  # Add this to store proxies only once
         self.request_per_second = 0  # Add counter for requests per second
         self.requests_in_current_second = 0
         self.last_request_time = time.time()
+        self.status = {
+            'state': 'initialized',  # Current state of the bot
+            'message': 'Bot initialized',  # Status message
+            'proxy_count': 0,  # Number of proxies currently loaded
+            'proxy_loading_progress': 0,  # Progress when loading proxies (0-100)
+            'startup_progress': 0  # Overall startup progress (0-100)
+        }
         logging.debug(f"Type of proxy: {self.type_of_proxy}")
         logging.debug(f"Timeout: {self.timeout}")
         logging.debug(f"Proxy imported: {self.proxy_imported}")
@@ -58,42 +66,160 @@ class ViewerBot:
         logging.debug(f"Number of threads: {self.nb_of_threads}")
         logging.debug(f"Channel name: {self.channel_name}")
 
+    def update_status(self, state, message, proxy_count=None, proxy_loading_progress=None, startup_progress=None):
+        self.status.update({
+            'state': state,
+            'message': message,
+            **(({'proxy_count': proxy_count} if proxy_count is not None else {})),
+            **(({'proxy_loading_progress': proxy_loading_progress} if proxy_loading_progress is not None else {})),
+            **(({'startup_progress': startup_progress} if startup_progress is not None else {}))
+        })
+        logging.info(f"Status updated: {self.status}")
+
     def get_proxies(self):
-        # Fetch proxies from an API or use the provided proxy list
-        if self.proxyrefreshed == False: 
+        self.update_status('loading_proxies', 'Starting proxy collection...')
+        
+        if not self.proxyrefreshed:
             if self.proxy_file:
                 try:
+                    self.update_status('loading_proxies', 'Loading proxies from file...')
                     with open(self.proxy_file, 'r') as f:
                         lines = [self.extract_ip_port(line.strip()) for line in f.readlines() if line.strip()]
                         self.proxyrefreshed = True
-                        logging.debug(f"Proxies loaded from file: {lines}")
+                        self.update_status('proxies_loaded', f'Loaded {len(lines)} proxies from file', proxy_count=len(lines))
                         return lines
                 except FileNotFoundError:
+                    self.update_status('error', 'Proxy file not found')
                     logging.error(f"Proxy file {self.proxy_file} not found.")
                     sys.exit(1)
             else:
                 try:
-                    response = requests.get(f"https://api.proxyscrape.com/v2/free-proxy-list/get?request=displayproxies&protocol={self.type_of_proxy}&proxy_format=protocolipport&format=text&timeout={self.timeout}")
+                    self.update_status('loading_proxies', 'Fetching proxies from API...')
+                    
+                    # Debug: Print current proxy type
+                    logging.debug(f"Fetching proxies with type: {self.type_of_proxy}")
+                    
+                    url = "https://api.proxyscrape.com/v4/free-proxy-list/get"
+                    params = {
+                        'request': 'display_proxies',
+                        'proxy_format': 'protocolipport',
+                        'format': 'text',
+                        'protocol': self.type_of_proxy,
+                        'timeout': self.timeout
+                    }
+                    
+                    headers = {
+                        'User-Agent': ua.random
+                    }
+                    
+                    # Debug: Log request details
+                    logging.debug(f"Request URL: {url}")
+                    logging.debug(f"Request params: {params}")
+                    
+                    response = requests.get(url, params=params, headers=headers, timeout=10)
+                    
+                    # Debug: Log response details
+                    logging.debug(f"Response status code: {response.status_code}")
+                    logging.debug(f"Response headers: {response.headers}")
+                    
                     if response.status_code == 200:
-                        lines = response.text.split("\n")
-                        lines = [self.extract_ip_port(line.strip()) for line in lines if line.strip()]
-                        self.proxyrefreshed = True
-                        logging.debug(f"Proxies fetched from API: {lines}")
-                        return lines
+                        # Debug: Log first few lines of response
+                        logging.debug(f"First 100 chars of response: {response.text[:100]}")
+                        
+                        lines = [line.strip() for line in response.text.splitlines() if line.strip()]
+                        proxies = []
+                        
+                        # Debug: Log number of lines found
+                        logging.debug(f"Found {len(lines)} proxy lines")
+                        
+                        for idx, line in enumerate(lines):
+                            try:
+                                if '://' in line:
+                                    # Line already has protocol
+                                    proxy_data = self.extract_ip_port(line)
+                                else:
+                                    # Add default http:// if no protocol specified
+                                    proxy_data = self.extract_ip_port(f"http://{line}")
+                                
+                                # Filter by proxy type if specified
+                                if self.type_of_proxy == 'all' or proxy_data[0] == self.type_of_proxy:
+                                    proxies.append(proxy_data)
+                                
+                                # Update progress
+                                progress = int((idx + 1) / len(lines) * 100)
+                                if progress % 10 == 0:
+                                    self.update_status(
+                                        'loading_proxies',
+                                        f'Processing proxies... {progress}%',
+                                        proxy_loading_progress=progress
+                                    )
+                            except Exception as e:
+                                logging.error(f"Error processing proxy line '{line}': {e}")
+                                continue
+                        
+                        if proxies:
+                            self.proxyrefreshed = True
+                            self.update_status(
+                                'proxies_loaded',
+                                f'Successfully loaded {len(proxies)} proxies',
+                                proxy_count=len(proxies),
+                                proxy_loading_progress=100
+                            )
+                            # Debug: Log first few proxies
+                            logging.debug(f"First 5 proxies: {proxies[:5]}")
+                            return proxies
+                        
+                        logging.error("No valid proxies found in response")
+                    else:
+                        logging.error(f"API request failed with status code: {response.status_code}")
+                    
+                    # Si aucun proxy n'est trouvé, essayer une source de secours
+                    backup_response = requests.get(
+                        'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt'
+                    )
+                    if backup_response.status_code == 200:
+                        proxies = [
+                            self.extract_ip_port(f"http://{line.strip()}")
+                            for line in backup_response.text.splitlines()
+                            if line.strip()
+                        ]
+                        if proxies:
+                            self.proxyrefreshed = True
+                            self.update_status(
+                                'proxies_loaded',
+                                f'Loaded {len(proxies)} proxies from backup source',
+                                proxy_count=len(proxies),
+                                proxy_loading_progress=100
+                            )
+                            return proxies
+                    
+                    self.update_status('error', 'Failed to fetch proxies from both sources')
+                    return []
+                        
                 except Exception as e:
-                    logging.error(f"Error fetching proxies: {e}")
+                    error_msg = f"Error fetching proxies: {str(e)}"
+                    logging.error(error_msg)
+                    self.update_status('error', error_msg)
                     return []
 
     def extract_ip_port(self, proxy):
-        # Extract IP:PORT from a proxy string and determine its type
-        if proxy.startswith("socks4://"):
-            return ("socks4", proxy.split("://")[1])
-        elif proxy.startswith("socks5://"):
-            return ("socks5", proxy.split("://")[1])
-        elif proxy.startswith("http://"):
-            return ("http", proxy.split("://")[1])
-        else:
-            return ("http", proxy)  # Default
+        try:
+            # Gérer les formats avec protocole
+            if '://' in proxy:
+                parsed = urlparse(proxy)
+                protocol = parsed.scheme
+                proxy_address = parsed.netloc
+                # Gérer le cas où il y a des credentials
+                if '@' in proxy_address:
+                    proxy_address = proxy_address.split('@')[1]
+            else:
+                protocol = self.type_of_proxy
+                proxy_address = proxy
+
+            return (protocol, proxy_address)
+        except Exception as e:
+            logging.error(f"Error parsing proxy {proxy}: {e}")
+            return (self.type_of_proxy, proxy)  # Fallback to raw format
     
     def get_url(self):
         url = ""
@@ -109,18 +235,19 @@ class ViewerBot:
         return url
 
     def stop(self):
-        console.print("[bold red]Bot has been stopped[/bold red]")        
+        console.print("[bold red]Bot has been stopped[/bold red]")
+        self.update_status('stopping', 'Stopping bot...')
         self.should_stop = True
         
-        # Attendre que tous les threads se terminent
         for thread in self.processes:
             if thread.is_alive():
-                thread.join(timeout=1)  # Timeout de 1 seconde par thread
+                thread.join(timeout=1)
         
         # Vider la liste des threads
         self.processes.clear()
         self.active_threads = 0
         self.all_proxies = []
+        self.update_status('stopped', 'Bot has been stopped')
         logging.debug("Bot stopped and all threads cleaned up")
 
     def open_url(self, proxy_data):
@@ -173,19 +300,24 @@ class ViewerBot:
                     "https": f"http://{credentials}{ip}:{port}"}
 
     def main(self):
+        self.update_status('starting', 'Starting bot...', startup_progress=0)
         start = datetime.datetime.now()
         proxies = self.get_proxies()
+        logging.debug(f"Proxies: {proxies}")
         
         if not proxies:
-            console.print("[bold red]No proxies available. Stopping bot.[/bold red]")
+            self.update_status('error', 'No proxies available. Stopping bot.')
             self.should_stop = True
             return
 
         # Initialize all_proxies only once
         self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
-        logging.debug(f"Initial proxies: {self.all_proxies}")
         
         self.processes = []
+        
+        self.update_status('running', 'Bot is now running', 
+                          proxy_count=len(self.all_proxies), 
+                          startup_progress=100)
         
         while True:
             if len(self.all_proxies) == 0:

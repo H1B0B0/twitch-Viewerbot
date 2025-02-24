@@ -96,3 +96,50 @@ body {
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
 }
+
+/* Ajoutez ces styles */
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-background to-background/80;
+    backdrop-filter: none;
+  }
+}
+
+@layer components {
+  .card-hover-effect {
+    @apply transition-all duration-300 hover:shadow-2xl hover:scale-[1.02];
+  }
+
+  .glass-effect {
+    @apply bg-background/95 backdrop-blur-xl;
+  }
+}
+
+/* Animations douces */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Améliorations du scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background/50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-foreground/10 rounded-full hover:bg-foreground/20 transition-colors;
+}

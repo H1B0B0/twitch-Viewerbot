@@ -48,12 +48,12 @@ export function StatCard({ title, value, total, increment }: StatCardProps) {
   return (
     <Card
       className={cn(
-        "border-none bg-gradient-to-br from-default-50/50 to-default-100/50 backdrop-blur-md transition-all duration-300",
-        isRequestCard && isIncreasing && "ring-1 ring-purple-500/50"
+        "border-none bg-background/90 backdrop-blur-xl transition-all duration-300 h-full w-full",
+        isRequestCard && isIncreasing && "ring-2 ring-purple-500/50"
       )}
       shadow="sm"
     >
-      <CardBody className="space-y-4 p-6">
+      <CardBody className="space-y-4 p-6 flex flex-col justify-between h-full">
         <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider flex items-center justify-between">
           {title}
           {isRequestCard && isIncreasing && (

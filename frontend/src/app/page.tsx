@@ -18,6 +18,17 @@ import { useGetProfile, logout } from "./functions/UserAPI";
 import { useViewerCount } from "../hooks/useViewerCount";
 import { ViewerStatCard } from "../components/ViewerStatCard";
 import { startBot, stopBot, getBotStats } from "./functions/BotAPI";
+import { SystemMetrics } from "../components/SystemMetrics";
+import { StatusBanner } from "../components/StatusBanner";
+
+interface MetricData {
+  label: string;
+  value: number;
+  color: string;
+  unit: string;
+  history: number[];
+  maxValue: number;
+}
 
 export default function ViewerBotInterface() {
   const { data: profile } = useGetProfile();
@@ -27,7 +38,7 @@ export default function ViewerBotInterface() {
     gameName: "",
     messagesPerMinute: 1,
     enableChat: false,
-    proxyType: "http",
+    proxyType: "all",
     timeout: 10000,
   });
   const { viewerCount: currentViewers } = useViewerCount(
@@ -47,36 +58,135 @@ export default function ViewerBotInterface() {
 
   const [channelNameModified, setChannelNameModified] = useState(false);
 
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+  // Add new state for bot status
+  const [botStatus, setBotStatus] = useState({
+    state: "initialized",
+    message: "",
+    proxy_count: 0,
+    proxy_loading_progress: 0,
+    startup_progress: 0,
+  });
 
-    if (isLoading) {
-      intervalId = setInterval(async () => {
-        try {
-          const stats = await getBotStats();
-          setStats((prevStats) => ({
-            ...prevStats,
-            activeThreads: stats.active_threads,
-            totalProxies: stats.total_proxies,
-            aliveProxies: stats.alive_proxies,
-            request_count: stats.request_count,
-          }));
+  const [systemMetrics, setSystemMetrics] = useState<{
+    cpu: MetricData;
+    memory: MetricData;
+    network_up: MetricData;
+    network_down: MetricData;
+  }>({
+    cpu: {
+      label: "CPU Usage",
+      value: 0,
+      color: "#3b82f6",
+      unit: "%",
+      history: [],
+      maxValue: 100,
+    },
+    memory: {
+      label: "Memory Usage",
+      value: 0,
+      color: "#10b981",
+      unit: "%",
+      history: [],
+      maxValue: 100,
+    },
+    network_up: {
+      label: "Upload",
+      value: 0,
+      color: "#8b5cf6",
+      unit: "MB/s",
+      history: [],
+      maxValue: 10, // Ajustez selon vos besoins
+    },
+    network_down: {
+      label: "Download",
+      value: 0,
+      color: "#ef4444",
+      unit: "MB/s",
+      history: [],
+      maxValue: 10, // Ajustez selon vos besoins
+    },
+  });
 
-          // If active threads drops to 0, consider the bot stopped
-          if (stats.active_threads === 0 && isLoading) {
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error("Failed to fetch stats:", error);
+  const fetchStats = async () => {
+    try {
+      const stats = await getBotStats();
+
+      // Ensure system_metrics exists with default values
+      const system_metrics = stats.system_metrics || {
+        cpu: 0,
+        memory: 0,
+        network_up: 0,
+        network_down: 0,
+      };
+
+      // Update system metrics with safe values
+      setSystemMetrics((prevMetrics) => {
+        const updateMetric = (
+          metric: MetricData,
+          newValue: number | undefined
+        ): MetricData => ({
+          ...metric,
+          value: typeof newValue === "number" ? newValue : 0,
+          history: [
+            ...metric.history.slice(-29),
+            typeof newValue === "number" ? newValue : 0,
+          ],
+        });
+
+        return {
+          cpu: updateMetric(prevMetrics.cpu, system_metrics.cpu),
+          memory: updateMetric(prevMetrics.memory, system_metrics.memory),
+          network_up: updateMetric(
+            prevMetrics.network_up,
+            Number(Number(system_metrics.network_up).toFixed(2))
+          ),
+          network_down: updateMetric(
+            prevMetrics.network_down,
+            Number(Number(system_metrics.network_down).toFixed(2))
+          ),
+        };
+      });
+
+      // Update bot stats
+      setStats((prevStats) => ({
+        ...prevStats,
+        activeThreads: stats.active_threads,
+        totalProxies: stats.total_proxies,
+        aliveProxies: stats.alive_proxies,
+        request_count: stats.request_count,
+      }));
+
+      // Update bot status
+      if (stats.status) {
+        setBotStatus(stats.status);
+
+        // Handle error states
+        if (stats.status.state === "error" && isLoading) {
+          setIsLoading(false);
+          toast.error(stats.status.message);
         }
-      }, 1000);
-    }
-
-    // Cleanup interval on unmount or when isLoading changes
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
       }
+
+      // Update isLoading based on bot state
+      if (!stats.is_running && isLoading) {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch stats immediately and then every second
+    const intervalId = setInterval(() => {
+      fetchStats();
+    }, 1000);
+
+    // Initial fetch
+    fetchStats();
+
+    return () => {
+      clearInterval(intervalId);
     };
   }, [isLoading]);
 
@@ -204,10 +314,10 @@ export default function ViewerBotInterface() {
   };
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header with Logout */}
-        <Card className="relative text-center mb-8 p-8 rounded-2xl">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <Card className="relative text-center p-8 rounded-2xl border-none bg-background/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300">
           <Button
             as="a"
             href="https://www.patreon.com/c/HIBO"
@@ -239,35 +349,50 @@ export default function ViewerBotInterface() {
           </p>
         </Card>
 
-        {/* Monitoring Section - Moved to top */}
-        <Card>
-          <CardHeader>
-            <h2 className="text-2xl font-semibold">Live Monitoring</h2>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ViewerStatCard value={currentViewers} />
-              <StatCard
-                title="Active Threads"
-                value={stats.activeThreads}
-                total={config.threads}
-              />
-              <StatCard
-                title="Proxies"
-                value={stats.totalProxies}
-                total={stats.totalProxies}
-              />
-              <StatCard title="Requests" value={stats.request_count} />
-            </div>
-          </CardBody>
-        </Card>
+        {/* Monitoring Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="h-full border-none bg-background/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="pb-2">
+              <h2 className="text-2xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Live Monitoring
+              </h2>
+            </CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
+                  <ViewerStatCard value={currentViewers} />
+                </div>
+                <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
+                  <StatCard
+                    title="Active Threads"
+                    value={stats.activeThreads}
+                    total={config.threads}
+                  />
+                </div>
+                <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
+                  <StatCard
+                    title="Proxies"
+                    value={botStatus.proxy_count || stats.totalProxies}
+                    total={botStatus.proxy_count || stats.totalProxies}
+                  />
+                </div>
+                <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
+                  <StatCard title="Requests" value={stats.request_count} />
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <SystemMetrics metrics={systemMetrics} />
+        </div>
 
         {/* Control Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Basic Configuration */}
-          <Card>
-            <CardHeader>
-              <h2 className="text-2xl font-semibold">Basic Configuration</h2>
+          <Card className="border-none bg-background/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="pb-2">
+              <h2 className="text-2xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Basic Configuration
+              </h2>
             </CardHeader>
             <CardBody className="space-y-6">
               <Input
@@ -321,7 +446,7 @@ export default function ViewerBotInterface() {
                 <Slider
                   value={[config.timeout]}
                   defaultValue={[10000]}
-                  maxValue={10000}
+                  maxValue={20000}
                   onChange={(value) =>
                     setConfig({
                       ...config,
@@ -405,10 +530,11 @@ export default function ViewerBotInterface() {
             </CardBody>
           </Card>
 
-          {/* Advanced Settings */}
-          <Card>
-            <CardHeader>
-              <h2 className="text-2xl font-semibold">Advanced Settings</h2>
+          <Card className="border-none bg-background/90 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="pb-2">
+              <h2 className="text-2xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Advanced Settings
+              </h2>
             </CardHeader>
             <CardBody className="space-y-6">
               <div className="relative">
@@ -468,22 +594,37 @@ export default function ViewerBotInterface() {
           </Card>
         </div>
 
-        {/* Action Button */}
-        <Card>
-          <CardBody className="py-6">
-            <Button
-              variant="solid"
-              color={isLoading ? "danger" : "primary"}
-              size="lg"
-              fullWidth
-              onPress={isLoading ? handleStop : handleStart}
-            >
-              {isLoading ? "Stop Bot" : "Start Bot"}
-            </Button>
-          </CardBody>
-        </Card>
+        {/* Status Banner with new styling */}
+        <div className="transform hover:scale-[1.02] transition-transform duration-300">
+          <StatusBanner status={botStatus} />
+        </div>
+
+        <Button
+          variant="solid"
+          color={isLoading ? "danger" : "primary"}
+          size="lg"
+          fullWidth
+          onPress={isLoading ? handleStop : handleStart}
+          className="relative group overflow-hidden"
+        >
+          <span className="relative z-10">
+            {isLoading ? "Stop Bot" : "Start Bot"}
+          </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 group-hover:opacity-100 opacity-0 transition-opacity duration-300" />
+        </Button>
       </div>
-      <ToastContainer />
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 }

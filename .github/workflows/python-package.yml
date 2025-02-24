@@ -69,6 +69,7 @@ jobs:
           --add-data "venv/Lib/site-packages/websocket;websocket" `
           --add-data "venv/Lib/site-packages/cffi;cffi" `
           --add-data "venv/Lib/site-packages/Crypto;Crypto" `
+          --add-date "venv/lib/python3.11/site-packages/psutil:psutil" `
           --collect-data fake_useragent `
           --collect-submodules streamlink `
           --collect-submodules websocket `
@@ -142,6 +143,7 @@ jobs:
           --add-data "venv/lib/python3.11/site-packages/websocket:websocket" \
           --add-data "venv/lib/python3.11/site-packages/cffi:cffi" \
           --add-data "venv/lib/python3.11/site-packages/Crypto:Crypto" \
+          --add-date "venv/lib/python3.11/site-packages/psutil:psutil" \
           --collect-data fake_useragent \
           --collect-submodules streamlink \
           --collect-submodules websocket \
