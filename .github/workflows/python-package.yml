@@ -58,7 +58,7 @@ jobs:
       - name: Build Windows Executable
         run: |
           .\venv\Scripts\activate
-          pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" `
+          pyinstaller --noconfirm --onefile --uac-admin --icon "frontend/public/favicon.ico" `
           --paths "venv/Lib/site-packages" `
           --add-data "backend;." `
           --add-data "backend/.env;." `
@@ -132,7 +132,7 @@ jobs:
       - name: Build MacOS App
         run: |
           source venv/bin/activate
-          pyinstaller --noconfirm --onefile --icon "frontend/public/favicon.ico" \
+          pyinstaller --noconfirm --onefile --uac-admin --icon "frontend/public/favicon.ico" \
           --paths "venv/lib/python3.11/site-packages" \
           --add-data "backend:." \
           --add-data "backend/.env:." \
@@ -182,12 +182,10 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # 🚀 TwitchViewerBOT Release Notes V3.0.3
+            # 🚀 TwitchViewerBOT Release Notes V3.0.5
 
-            ## Fix
-            - Fix Network Error
-            - Fix bot viewers never stop
-            - Fix middlewares not working
+            ## Features
+            - Added multi-protocol support for the proxies (HTTP, HTTPS, SOCKS4, SOCKS5)
 
           draft: false
           prerelease: false
