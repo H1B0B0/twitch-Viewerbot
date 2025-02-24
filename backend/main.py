@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import webbrowser
 from api import api
 from gevent.pywsgi import WSGIServer
+import argparse
 
 def get_env_path():
     """Get the correct path for .env file in both dev and PyInstaller environments"""
@@ -36,6 +37,11 @@ logger = logging.getLogger(__name__)
 # Load environment variables from .env file
 env_path = get_env_path()
 load_dotenv(env_path)
+
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--dev', action='store_true', help='Run in development mode without authentication')
+args = parser.parse_args()
 
 # Check for JWT_SECRET in environment variables
 JWT_SECRET = os.getenv('JWT_SECRET')
@@ -80,6 +86,10 @@ def verify_token(token):
 def auth_middleware(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Skip authentication if in dev mode
+        if getattr(parser.parse_args(), 'dev', False):
+            return f(*args, **kwargs)
+
         path = request.path
         logger.info(f"Current path: {path}")
 
@@ -186,6 +196,19 @@ if __name__ == '__main__':
     if not os.path.exists(app.static_folder):
         logger.error(f"Static folder not found: {app.static_folder}")
         exit(1)
+
+    if args.dev:
+        logger.warning("Running in development mode - Authentication disabled")
+    else:
+        JWT_SECRET = os.getenv('JWT_SECRET')
+        if not JWT_SECRET:
+            logger.error(f"JWT_SECRET not found in environment variables. Env path: {env_path}")
+            if os.path.exists(env_path):
+                with open(env_path, 'r') as f:
+                    logger.info(f"Env file contents: {f.read()}")
+            raise ValueError("JWT_SECRET must be set in environment variables")
+        
+        app.config['JWT_SECRET'] = JWT_SECRET
     
     from threading import Timer
     Timer(1.5, open_browser).start()

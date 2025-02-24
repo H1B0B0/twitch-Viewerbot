@@ -38,36 +38,47 @@ A modern web application for generating Twitch views using proxies, built with a
 4. Configure your settings.
 5. Start the bot.
 
-## Installation [DEV]
-
-1. Clone the repository:
-   ```shell
-   git clone https://github.com/H1B0B0/twitch-Viewerbot.git
-   ```
-2. Navigate into the folder:
-   ```shell
-   cd twitch-Viewerbot
-   ```
-3. Install the required Python packages:
-   ```shell
-   pip install -r requirements.txt
-   ```
-4. Start the Flask backend:
-   ```shell
-   python run.py
-   ```
-5. Start the React frontend:
-   ```shell
-   npm start
-   ```
-
 ## Usage [DEV]
 
-1. Open your web browser and navigate to `http://localhost:3000`.
-2. Enter the number of threads you want to run.
-3. Enter the name of the Twitch channel you want to generate views for.
-4. (Optional) Upload your custom proxy list.
-5. Click the "Start bot" button to start generating views.
+1. Clone the repository and create a virtual environment:
+
+   ```bash
+   git clone https://github.com/H1B0B0/twitch-Viewerbot.git
+   cd twitch-Viewerbot
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+2. Install dependencies and start the Flask backend in dev mode:
+
+   ```bash
+   pip install -r requirements.txt
+   python ./backend/main.py --dev
+   ```
+
+   Or start with authentication enabled:
+
+   ```bash
+   python ./backend/main.py
+   ```
+
+3. Open your web browser and navigate to `https://velbots.shop`
+
+4. Configure the bot:
+
+   - Enter the number of threads (recommended: 100-200)
+   - Enter the Twitch channel name
+   - (Optional) Upload a custom proxy list
+   - Choose proxy type (HTTP, SOCKS4, SOCKS5, or ALL)
+
+5. Click "Start Bot" to begin generating views
+
+💡 **Dev Mode Tips:**
+
+- Use `--dev` flag to bypass authentication requirements
+- Perfect for local testing and development
+- No JWT secret key needed in dev mode
+- All routes and features are accessible without login
 
 ## How to use with macOS
 
