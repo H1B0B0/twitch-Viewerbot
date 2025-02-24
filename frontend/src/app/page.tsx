@@ -334,9 +334,34 @@ export default function ViewerBotInterface() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium block">
-                  Proxy List (Optional)
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium block">
+                    Proxy List (Optional)
+                  </label>
+                  <Tooltip
+                    content={
+                      <div className="max-w-xs p-2">
+                        <p className="font-medium mb-1">
+                          Supported proxy formats:
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          <li>IP:PORT</li>
+                          <li>http://IP:PORT</li>
+                          <li>socks4://IP:PORT</li>
+                          <li>socks5://IP:PORT</li>
+                          <li>USERNAME:PASSWORD@IP:PORT</li>
+                        </ul>
+                        <p className="mt-2 text-xs">
+                          One proxy per line in your text file
+                        </p>
+                      </div>
+                    }
+                  >
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-default-100 text-default-500 cursor-help text-xs">
+                      ?
+                    </div>
+                  </Tooltip>
+                </div>
                 <div className="relative">
                   <Button
                     as="label"
@@ -371,9 +396,10 @@ export default function ViewerBotInterface() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Upload a .txt file with proxies or let the bot scrape them
-                  automatically (format: ip:port). Ensure the proxies are
-                  reliable for better performance.
+                  If no proxy file is uploaded, the bot will automatically fetch
+                  fresh proxies from our servers. You can also upload your own
+                  .txt file with proxies (one per line) for better performance
+                  and control.
                 </p>
               </div>
             </CardBody>
