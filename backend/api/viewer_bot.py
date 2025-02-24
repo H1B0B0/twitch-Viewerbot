@@ -37,7 +37,7 @@ class ViewerBot:
         self.proxy_imported = proxy_imported
         self.proxy_file = proxy_file
         self.nb_of_threads = int(nb_of_threads)
-        self.channel_name = channel_name
+        self.channel_name = self.extract_channel_name(channel_name)
         self.request_count = 0  # Total requests
         self.all_proxies = []
         self.processes = []
@@ -65,6 +65,15 @@ class ViewerBot:
         logging.debug(f"Proxy file: {self.proxy_file}")
         logging.debug(f"Number of threads: {self.nb_of_threads}")
         logging.debug(f"Channel name: {self.channel_name}")
+
+    def extract_channel_name(self, input_str):
+        """Extrait le nom de la chaîne d'une URL Twitch ou retourne le nom directement"""
+        if "twitch.tv/" in input_str:
+            # Extraire le nom de la chaîne de l'URL
+            parts = input_str.split("twitch.tv/")
+            channel = parts[1].split("/")[0].split("?")[0]  # Gérer les paramètres d'URL potentiels
+            return channel.lower()
+        return input_str.lower()
 
     def update_status(self, state, message, proxy_count=None, proxy_loading_progress=None, startup_progress=None):
         self.status.update({

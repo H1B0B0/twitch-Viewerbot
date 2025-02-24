@@ -189,6 +189,7 @@ jobs:
             ## Features
             - Added multi-protocol support for the proxies (HTTP, HTTPS, SOCKS4, SOCKS5)
             - New proxies scraping method
+            - Added the option to use URL or channel name
 
             ## UI Improvements
             - Added a new theme for the UI

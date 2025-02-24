@@ -245,7 +245,7 @@ export default function ViewerBotInterface() {
 
   const handleStart = async () => {
     if (!config.channelName) {
-      toast.error("Channel name is required");
+      toast.error("Channel name or url is required");
       return;
     } else if (config.threads === 0) {
       toast.error("Threads count must be greater than 0");
@@ -396,10 +396,10 @@ export default function ViewerBotInterface() {
             </CardHeader>
             <CardBody className="space-y-6">
               <Input
-                label="Channel Name"
+                label="Channel Name or URL"
                 value={config.channelName}
                 placeholder={
-                  profile?.user?.TwitchUsername || "Enter channel name"
+                  profile?.user?.TwitchUsername || "Enter channel name or URL"
                 }
                 onChange={handleChannelNameChange}
               />

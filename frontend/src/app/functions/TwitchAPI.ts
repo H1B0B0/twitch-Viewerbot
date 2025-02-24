@@ -1,8 +1,21 @@
+export function extractChannelName(input: string): string {
+  if (!input) return "";
+
+  if (input.includes("twitch.tv/")) {
+    const parts = input.split("twitch.tv/");
+    const channel = parts[1].split(/[/?]/)[0];
+    return channel.toLowerCase();
+  }
+  return input.toLowerCase();
+}
+
 export async function getViewerCount(username: string): Promise<number> {
   if (!username) {
     console.log("No username provided for viewer count fetch");
     return 0;
   }
+
+  const channelName = extractChannelName(username);
 
   try {
     const graphqlQuery = {
@@ -15,7 +28,7 @@ export async function getViewerCount(username: string): Promise<number> {
           }
         }
       `,
-      variables: { login: username },
+      variables: { login: channelName },
     };
 
     const response = await fetch("https://gql.twitch.tv/gql", {
