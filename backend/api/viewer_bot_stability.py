@@ -397,6 +397,7 @@ class ViewerBot_Stability:
         
         # Number of threads should be at most the number of available proxies
         thread_count = min(self.nb_of_threads, len(self.all_proxies))
+        self.nb_of_threads = thread_count
         self.thread_semaphore = Semaphore(thread_count)  # Update semaphore with actual thread count
         
         logging.info(f"Starting bot with {thread_count} threads using {len(self.all_proxies)} unique proxies")

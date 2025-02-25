@@ -286,7 +286,7 @@ export default function ViewerBotInterface() {
         proxyFile: proxyFile || undefined,
         timeout: config.timeout,
         proxyType: config.proxyType,
-        stabilityMode: config.stabilityMode,
+        stabilityMode: config.stabilityMode, // Ensure stabilityMode is included
       });
       toast.success(
         "Bot started successfully!🚀 It may take a while before the viewers appear on the stream."

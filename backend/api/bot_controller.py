@@ -54,6 +54,7 @@ class BotManager:
         
         # Choose the appropriate ViewerBot class based on stability_mode
         bot_class = ViewerBot_Stability if stability_mode else ViewerBot
+        logging.info(f"Using bot class: {bot_class}")
         
         self.bot = bot_class(
             nb_of_threads=threads,
@@ -162,7 +163,7 @@ def start_bot():
     threads = int(request.form.get('threads', 100))
     timeout = int(request.form.get('timeout', 1000))
     proxy_type = request.form.get('proxyType', 'http')
-    stability_mode = request.form.get('stabilityMode', 'false').lower() == 'true'
+    stability_mode = request.form.get('stabilityMode', 'false').lower() == 'true'  # Ensure correct parsing
     proxy_file_path = None
 
     logger.info(f"Received start request with stability_mode: {stability_mode}")

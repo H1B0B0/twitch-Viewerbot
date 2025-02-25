@@ -20,6 +20,7 @@ export const startBot = async (config: {
   if (config.proxyType) {
     formData.append("proxyType", config.proxyType);
   }
+  formData.append("stabilityMode", config.stabilityMode ? "true" : "false");
 
   const response = await fetch(`${API_BASE_URL}/start`, {
     method: "POST",
