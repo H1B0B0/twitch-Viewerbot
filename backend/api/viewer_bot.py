@@ -52,7 +52,6 @@ class ViewerBot:
         self.request_per_second = 0  # Add counter for requests per second
         self.requests_in_current_second = 0
         self.last_request_time = time.time()
-        self.min_proxy_threshold = 0.3  # 30% of thread count minimum threshold
         self.status = {
             'state': 'initialized',  # Current state of the bot
             'message': 'Bot initialized',  # Status message
@@ -273,28 +272,13 @@ class ViewerBot:
                 if time.time() - proxy_data['time'] >= random.randint(1, 5):
                     proxy_type, proxy_address = proxy_data['proxy']
                     proxies = self.configure_proxies(proxy_type, proxy_address)
-                    
-                    start_time = time.time()
                     with requests.Session() as s:
                         s.head(current_url, proxies=proxies, headers=headers, timeout=10)
-                        response_time = int((time.time() - start_time) * 1000)  # Convert to ms
                         self.request_count += 1
-                        
-                        # Update proxy metrics
-                        if 'success_count' not in proxy_data:
-                            proxy_data['success_count'] = 0
-                        proxy_data['success_count'] += 1
-                        proxy_data['response_time'] = response_time
-                        logging.debug(f"Request successful using proxy {proxies}, response time: {response_time}ms")
-                        
+                        logging.debug(f"Request sent using proxy {proxies}")
                     proxy_data['time'] = time.time()
                     self.all_proxies[current_index] = proxy_data
             except Exception as e:
-                # Update failure count
-                if 'failure_count' not in proxy_data:
-                    proxy_data['failure_count'] = 0
-                proxy_data['failure_count'] += 1
-                self.all_proxies[current_index] = proxy_data
                 logging.error(f"Error sending request: {e}")
             finally:
                 self.active_threads -= 1
@@ -324,80 +308,19 @@ class ViewerBot:
             return {"http": f"http://{credentials}{ip}:{port}",
                     "https": f"http://{credentials}{ip}:{port}"}
 
-    def sort_proxies_by_quality(self):
-        """Sort proxies by their success rate and response time"""
-        logging.debug("Sorting proxies by quality...")
-        
-        # Calculate score for each proxy based on success rate and response time
-        for proxy in self.all_proxies:
-            if 'success_count' not in proxy:
-                proxy['success_count'] = 0
-            if 'failure_count' not in proxy:
-                proxy['failure_count'] = 0
-            if 'response_time' not in proxy:
-                proxy['response_time'] = 1000  # Default high response time
-                
-            total_attempts = proxy['success_count'] + proxy['failure_count']
-            if total_attempts > 0:
-                success_rate = proxy['success_count'] / total_attempts
-            else:
-                success_rate = 0
-                
-            # Calculate score (higher is better)
-            proxy['score'] = success_rate * (1000 / max(proxy['response_time'], 1))
-        
-        # Sort by score in descending order
-        self.all_proxies.sort(key=lambda x: x.get('score', 0), reverse=True)
-        logging.debug(f"Proxies sorted. Top 3 scores: {[p.get('score', 0) for p in self.all_proxies[:3]]}")
-        
-    def remove_bad_proxies(self):
-        """Remove proxies that have consistently failed"""
-        initial_count = len(self.all_proxies)
-        logging.debug(f"Checking for bad proxies. Initial count: {initial_count}")
-        
-        # Remove proxies with high failure rate (over 5 failures and success rate < 20%)
-        self.all_proxies = [p for p in self.all_proxies if not (
-            p.get('failure_count', 0) > 5 and 
-            p.get('success_count', 0) / max(p.get('failure_count', 1) + p.get('success_count', 0), 1) < 0.2
-        )]
-        
-        removed_count = initial_count - len(self.all_proxies)
-        if removed_count > 0:
-            logging.info(f"Removed {removed_count} bad proxies. Remaining: {len(self.all_proxies)}")
-            
-        # Check if we have enough proxies left
-        min_required = int(self.nb_of_threads * self.min_proxy_threshold)
-        if len(self.all_proxies) < min_required:
-            logging.warning(f"Proxy count ({len(self.all_proxies)}) below threshold ({min_required}). Attempting to refresh proxies.")
-            self.proxyrefreshed = False
-            new_proxies = self.get_proxies()
-            if new_proxies:
-                # Add new proxies to the pool
-                new_proxy_data = [{'proxy': p, 'time': time.time(), 'url': "", 'success_count': 0, 'failure_count': 0, 'response_time': 1000} for p in new_proxies]
-                self.all_proxies.extend(new_proxy_data)
-                logging.info(f"Added {len(new_proxy_data)} new proxies. New total: {len(self.all_proxies)}")
-        
-        return len(self.all_proxies)
-
     def main(self):
         self.update_status('starting', 'Starting bot...', startup_progress=0)
         start = datetime.datetime.now()
-        last_proxy_maintenance = time.time()
         proxies = self.get_proxies()
-        
-        # If the number of proxies is less than the number of threads, reduce the number of threads
-        if len(proxies) < self.nb_of_threads:
-            self.nb_of_threads = len(proxies)
+        logging.debug(f"Proxies: {proxies}")
         
         if not proxies:
             self.update_status('error', 'No proxies available. Stopping bot.')
             self.should_stop = True
             return
 
-        # Initialize all_proxies with quality metrics
-        self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': "", 
-                            'success_count': 0, 'failure_count': 0, 'response_time': 1000} 
-                           for p in proxies]
+        # Initialize all_proxies only once
+        self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
         
         self.processes = []
         
@@ -410,43 +333,26 @@ class ViewerBot:
                 console.print("[bold red]No proxies available. Stopping bot.[/bold red]")
                 break
 
-            # Perform proxy maintenance every 30 seconds
-            if time.time() - last_proxy_maintenance > 30:
-                self.sort_proxies_by_quality()
-                self.remove_bad_proxies()
-                last_proxy_maintenance = time.time()
-
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
             for i in range(0, int(self.nb_of_threads)):
                 acquired = self.thread_semaphore.acquire()
-                if acquired and len(self.all_proxies) > 0:
-                    # Use proxies with better quality first (they're sorted)
-                    proxy_index = min(i, len(self.all_proxies) - 1)
-                    threaded = Thread(target=self.open_url, args=(self.all_proxies[proxy_index],))
+                if acquired and len(self.all_proxies) > 0:  # Vérifier à nouveau avant de créer le thread
+                    threaded = Thread(target=self.open_url, args=(self.all_proxies[random.randrange(len(self.all_proxies))],))
                     self.processes.append(threaded)
                     threaded.daemon = True
                     threaded.start()
                 elif acquired:
-                    self.thread_semaphore.release()
+                    self.thread_semaphore.release()  # Relâcher le sémaphore si on ne peut pas créer de thread
 
             if elapsed_seconds >= 300 and self.proxy_imported == False:
                 # Refresh the proxies after 300 seconds (5 minutes)
                 start = datetime.datetime.now()
                 self.proxyrefreshed = False
                 proxies = self.get_proxies()
-                
-                # Keep track of good existing proxies
-                good_proxies = [p for p in self.all_proxies if p.get('success_count', 0) > p.get('failure_count', 0)]
-                
-                # Add new proxies with quality metrics
-                new_proxies = [{'proxy': p, 'time': time.time(), 'url': "", 
-                                'success_count': 0, 'failure_count': 0, 'response_time': 1000} 
-                              for p in proxies]
-                
-                # Combine good existing proxies with new ones
-                self.all_proxies = good_proxies + new_proxies
-                logging.debug(f"Proxies refreshed: {len(self.all_proxies)} total proxies")
+                # Update all_proxies with new proxies
+                self.all_proxies = [{'proxy': p, 'time': time.time(), 'url': ""} for p in proxies]
+                logging.debug(f"Proxies refreshed: {self.all_proxies}")
                 elapsed_seconds = 0
 
             if self.should_stop:
