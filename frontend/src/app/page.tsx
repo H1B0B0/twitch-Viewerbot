@@ -40,6 +40,7 @@ export default function ViewerBotInterface() {
     enableChat: false,
     proxyType: "all",
     timeout: 10000,
+    stabilityMode: false,
   });
   const { viewerCount: currentViewers } = useViewerCount(
     config?.channelName || profile?.user?.TwitchUsername
@@ -285,6 +286,7 @@ export default function ViewerBotInterface() {
         proxyFile: proxyFile || undefined,
         timeout: config.timeout,
         proxyType: config.proxyType,
+        stabilityMode: config.stabilityMode,
       });
       toast.success(
         "Bot started successfully!🚀 It may take a while before the viewers appear on the stream."
@@ -606,6 +608,60 @@ export default function ViewerBotInterface() {
                 <span className="absolute right-0 top-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded">
                   Coming Soon Premium Feature
                 </span>
+              </div>
+
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="text-sm font-medium">Stability Mode</label>
+                  <Tooltip
+                    content={
+                      <div className="max-w-xs p-2">
+                        <p>
+                          Stability mode helps maintain a consistent viewer
+                          count over time. Instead of experiencing large
+                          fluctuations, such as dropping from 125 viewers to 25
+                          viewers, stability mode aims to keep the viewer count
+                          within a more stable range. This is particularly
+                          useful for long streaming sessions, ensuring that the
+                          viewer count remains steady. For example, if you have
+                          an average of 40 viewers, stability mode might keep
+                          the count between 30 and 50 viewers.
+                        </p>
+                      </div>
+                    }
+                    placement="right"
+                  >
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-default-100 text-default-500 cursor-help text-xs">
+                      ?
+                    </div>
+                  </Tooltip>
+                </div>
+                <ButtonGroup>
+                  <Button
+                    variant={config.stabilityMode ? "solid" : "bordered"}
+                    onPress={() =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        stabilityMode: true,
+                      }))
+                    }
+                    disabled={unactivated}
+                  >
+                    On
+                  </Button>
+                  <Button
+                    variant={!config.stabilityMode ? "solid" : "bordered"}
+                    onPress={() =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        stabilityMode: false,
+                      }))
+                    }
+                    disabled={unactivated}
+                  >
+                    Off
+                  </Button>
+                </ButtonGroup>
               </div>
 
               <div>

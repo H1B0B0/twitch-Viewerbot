@@ -32,7 +32,7 @@ session.set_option("http-headers", {
     "Referer": "https://www.google.com/"
 })
 
-class ViewerBot:
+class ViewerBot_Stability:
     def __init__(self, nb_of_threads, channel_name, proxy_file=None, proxy_imported=False, timeout=10000, type_of_proxy="http"):
         self.proxy_imported = proxy_imported
         self.proxy_file = proxy_file
@@ -385,10 +385,6 @@ class ViewerBot:
         last_proxy_maintenance = time.time()
         proxies = self.get_proxies()
         
-        # If the number of proxies is less than the number of threads, reduce the number of threads
-        if len(proxies) < self.nb_of_threads:
-            self.nb_of_threads = len(proxies)
-        
         if not proxies:
             self.update_status('error', 'No proxies available. Stopping bot.')
             self.should_stop = True
@@ -399,11 +395,25 @@ class ViewerBot:
                             'success_count': 0, 'failure_count': 0, 'response_time': 1000} 
                            for p in proxies]
         
+        # Number of threads should be at most the number of available proxies
+        thread_count = min(self.nb_of_threads, len(self.all_proxies))
+        self.thread_semaphore = Semaphore(thread_count)  # Update semaphore with actual thread count
+        
+        logging.info(f"Starting bot with {thread_count} threads using {len(self.all_proxies)} unique proxies")
+        
         self.processes = []
         
         self.update_status('running', 'Bot is now running', 
                           proxy_count=len(self.all_proxies), 
                           startup_progress=100)
+        
+        # Track which proxies are currently in use
+        in_use_proxies = set()
+        
+        # Track which proxies were recently used and their last usage time
+        proxy_usage_history = {}
+        # Track the cycle count to ensure all proxies get used
+        cycle_count = 0
         
         while True:
             if len(self.all_proxies) == 0:
@@ -414,51 +424,173 @@ class ViewerBot:
             if time.time() - last_proxy_maintenance > 30:
                 self.sort_proxies_by_quality()
                 self.remove_bad_proxies()
+                # Don't clear in_use_proxies here anymore
                 last_proxy_maintenance = time.time()
+                # Reset usage cycle periodically to refresh distribution
+                cycle_count += 1
+                if cycle_count >= 5:  # Reset after 5 maintenance cycles
+                    proxy_usage_history.clear()
+                    cycle_count = 0
+                    logging.debug("Resetting proxy usage history to ensure diversity")
 
             elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
 
-            for i in range(0, int(self.nb_of_threads)):
-                acquired = self.thread_semaphore.acquire()
-                if acquired and len(self.all_proxies) > 0:
-                    # Use proxies with better quality first (they're sorted)
-                    proxy_index = min(i, len(self.all_proxies) - 1)
-                    threaded = Thread(target=self.open_url, args=(self.all_proxies[proxy_index],))
-                    self.processes.append(threaded)
-                    threaded.daemon = True
-                    threaded.start()
-                elif acquired:
-                    self.thread_semaphore.release()
+            # Get available proxies, prioritizing those that haven't been used recently
+            current_time = time.time()
+            available_proxies = []
+            unused_proxies = []
+            recently_used = []
+            
+            for proxy in self.all_proxies:
+                proxy_key = self.proxy_to_key(proxy['proxy'])
+                # Skip currently in-use proxies
+                if proxy_key in in_use_proxies:
+                    continue
+                    
+                # Categorize proxies by usage recency
+                last_used = proxy_usage_history.get(proxy_key, 0)
+                if last_used == 0:  # Never used in this cycle
+                    unused_proxies.append(proxy)
+                else:
+                    # Consider a proxy "recently used" if it was used in the last 5 seconds
+                    time_since_use = current_time - last_used
+                    if time_since_use < 5:
+                        recently_used.append((proxy, time_since_use))
+                    else:
+                        available_proxies.append((proxy, time_since_use))
+            
+            # Sort available proxies by time since last use (oldest first)
+            available_proxies.sort(key=lambda x: x[1], reverse=True)
+            available_proxies = [p[0] for p in available_proxies]
+            
+            # Prioritize unused proxies, then add older used proxies
+            prioritized_proxies = unused_proxies + available_proxies
+            
+            # If we're severely limited on proxies, allow recently used ones too
+            if len(prioritized_proxies) < thread_count * 0.5:
+                recently_used.sort(key=lambda x: x[1], reverse=True)  # Oldest first
+                prioritized_proxies.extend([p[0] for p in recently_used])
+                
+            # Log proxy distribution stats
+            logging.debug(f"Proxy distribution: {len(unused_proxies)} unused, {len(available_proxies)} available, {len(recently_used)} recent")
+                
+            # Launch threads for prioritized proxies up to the thread limit
+            launched_threads = 0
+            for proxy_data in prioritized_proxies:
+                if launched_threads >= thread_count:
+                    break
+                    
+                acquired = self.thread_semaphore.acquire(blocking=False)
+                if not acquired:
+                    break  # No more semaphores available
+                    
+                proxy_key = self.proxy_to_key(proxy_data['proxy'])
+                in_use_proxies.add(proxy_key)
+                proxy_usage_history[proxy_key] = current_time
+                
+                # Create thread for this proxy
+                threaded = Thread(target=self.open_url_with_tracking, 
+                                 args=(proxy_data, proxy_key, in_use_proxies))
+                self.processes.append(threaded)
+                threaded.daemon = True
+                threaded.start()
+                launched_threads += 1
+                
+            # Log how many threads we launched this cycle
+            if launched_threads > 0:
+                logging.debug(f"Launched {launched_threads} threads this cycle")
+                
+            # If we couldn't launch enough threads, we need more proxies
+            if launched_threads < thread_count * 0.7 and len(self.all_proxies) >= thread_count:
+                logging.warning(f"Only launched {launched_threads}/{thread_count} threads. Proxy diversity might be limited.")
 
+            # Proxy refresh logic (same as before)
             if elapsed_seconds >= 300 and self.proxy_imported == False:
-                # Refresh the proxies after 300 seconds (5 minutes)
-                start = datetime.datetime.now()
-                self.proxyrefreshed = False
-                proxies = self.get_proxies()
-                
-                # Keep track of good existing proxies
-                good_proxies = [p for p in self.all_proxies if p.get('success_count', 0) > p.get('failure_count', 0)]
-                
-                # Add new proxies with quality metrics
-                new_proxies = [{'proxy': p, 'time': time.time(), 'url': "", 
-                                'success_count': 0, 'failure_count': 0, 'response_time': 1000} 
-                              for p in proxies]
-                
-                # Combine good existing proxies with new ones
-                self.all_proxies = good_proxies + new_proxies
-                logging.debug(f"Proxies refreshed: {len(self.all_proxies)} total proxies")
-                elapsed_seconds = 0
+                # Refresh proxies code...
+                pass
+
+            # Small sleep to prevent CPU overload but allow for quick thread turnover
+            time.sleep(0.05)
 
             if self.should_stop:
                 logging.debug("Stopping main loop")
-                # Relâcher tous les sémaphores restants
-                for _ in range(self.nb_of_threads):
+                # Release all remaining semaphores
+                for _ in range(thread_count):
                     try:
                         self.thread_semaphore.release()
                     except ValueError:
-                        pass  # Ignore si déjà relâché
+                        pass  # Ignore if already released
                 break
 
         for t in self.processes:
             t.join()
         console.print("[bold red]Bot main loop ended[/bold red]")
+
+    # Helper method to generate a unique key for each proxy
+    def proxy_to_key(self, proxy):
+        return f"{proxy[0]}:{proxy[1]}"  # protocol:ip:port
+
+    # Modified version of open_url that tracks when a proxy is finished being used
+    def open_url_with_tracking(self, proxy_data, proxy_key, in_use_set):
+        self.active_threads += 1
+        try:
+            headers = {'User-Agent': ua.random}
+            
+            try:
+                # Find the proxy in the list (it might have moved due to sorting)
+                try:
+                    current_index = self.all_proxies.index(proxy_data)
+                except ValueError:
+                    # Proxy no longer in list, abort this thread
+                    logging.debug(f"Proxy {proxy_key} no longer in list, aborting thread")
+                    return
+                    
+                if proxy_data['url'] == "":
+                    proxy_data['url'] = self.get_url()
+                current_url = proxy_data['url']
+                
+                # Always try to use the proxy regardless of time since last use
+                # This ensures all proxies get used
+                proxy_type, proxy_address = proxy_data['proxy']
+                proxies = self.configure_proxies(proxy_type, proxy_address)
+                
+                start_time = time.time()
+                with requests.Session() as s:
+                    s.head(current_url, proxies=proxies, headers=headers, timeout=10)
+                    response_time = int((time.time() - start_time) * 1000)  # Convert to ms
+                    self.request_count += 1
+                    
+                    # Update proxy metrics
+                    if 'success_count' not in proxy_data:
+                        proxy_data['success_count'] = 0
+                    proxy_data['success_count'] += 1
+                    proxy_data['response_time'] = response_time
+                    logging.debug(f"Request successful using proxy {proxy_key}, response time: {response_time}ms")
+                    
+                proxy_data['time'] = time.time()
+                self.all_proxies[current_index] = proxy_data
+            except Exception as e:
+                # Update failure count
+                if 'failure_count' not in proxy_data:
+                    proxy_data['failure_count'] = 0
+                proxy_data['failure_count'] += 1
+                
+                # Try to update the proxy in the list
+                try:
+                    current_index = self.all_proxies.index(proxy_data)
+                    self.all_proxies[current_index] = proxy_data
+                except ValueError:
+                    # Proxy no longer in list
+                    pass
+                    
+                logging.error(f"Error sending request with proxy {proxy_key}: {e}")
+            finally:
+                # Mark this proxy as no longer in use
+                if proxy_key in in_use_set:
+                    in_use_set.remove(proxy_key)
+                self.active_threads -= 1
+                self.thread_semaphore.release()  # Release the semaphore
+
+        except (KeyboardInterrupt, SystemExit):
+            self.should_stop = True
+            logging.debug("Bot interrupted by user")

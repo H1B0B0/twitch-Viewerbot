@@ -10,7 +10,12 @@ import webbrowser
 from api import api
 from gevent.pywsgi import WSGIServer
 import argparse
-import resource
+import platform
+
+if platform.system() != "Windows":
+    import resource
+else:
+    resource = None
 
 def get_env_path():
     """Get the correct path for .env file in both dev and PyInstaller environments"""
@@ -188,9 +193,14 @@ def open_browser():
     webbrowser.open('https://velbots.shop')
 
 def set_resource_limits():
-    # Increase the soft limit for number of open files
-    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-    resource.setrlimit(resource.RLIMIT_NOFILE, (min(4096, hard), hard))
+    # Vérifier si le module resource est disponible (systèmes Unix/Linux/macOS)
+    if resource:
+        # Increase the soft limit for number of open files
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(4096, hard), hard))
+    else:
+        # Sur Windows, cette fonction ne fait rien
+        logger.info("Resource limits adjustment not supported on Windows")
 
 if __name__ == '__main__':
     set_resource_limits()

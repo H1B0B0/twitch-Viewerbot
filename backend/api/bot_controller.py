@@ -8,8 +8,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
-# Update the import to use relative import
+# Update imports to use both ViewerBot classes
 from .viewer_bot import ViewerBot
+from .viewer_bot_stability import ViewerBot_Stability
 
 bot_api = Blueprint('bot_api', __name__)
 active_bots = {}
@@ -42,12 +43,19 @@ class BotManager:
             'network_up': 0,
             'network_down': 0
         }
+        self.stability_mode = False
 
-    def start_bot(self, channel_name, threads, proxy_file=None, timeout=1000, proxy_type="http"):
+    def start_bot(self, channel_name, threads, proxy_file=None, timeout=1000, proxy_type="http", stability_mode=False):
         if self.is_running:
             return False
         
-        self.bot = ViewerBot(
+        self.stability_mode = stability_mode
+        logger.info(f"Starting bot with stability mode: {stability_mode}")
+        
+        # Choose the appropriate ViewerBot class based on stability_mode
+        bot_class = ViewerBot_Stability if stability_mode else ViewerBot
+        
+        self.bot = bot_class(
             nb_of_threads=threads,
             channel_name=channel_name,
             proxy_file=proxy_file,
@@ -112,6 +120,7 @@ class BotManager:
                     'threads': getattr(self.bot, 'nb_of_threads', 0),
                     'timeout': getattr(self.bot, 'timeout', 10000),
                     'proxy_type': getattr(self.bot, 'type_of_proxy', 'http'),
+                    'stability_mode': self.stability_mode
                 },
                 'status': getattr(self.bot, 'status', {
                     'state': 'stopped',
@@ -131,7 +140,7 @@ class BotManager:
                 'alive_proxies': 0,
                 'is_running': False,
                 'channel_name': None,
-                'config': {},
+                'config': {'stability_mode': self.stability_mode},
                 'status': {
                     'state': 'error',
                     'message': 'Error getting stats',
@@ -153,7 +162,10 @@ def start_bot():
     threads = int(request.form.get('threads', 100))
     timeout = int(request.form.get('timeout', 1000))
     proxy_type = request.form.get('proxyType', 'http')
+    stability_mode = request.form.get('stabilityMode', 'false').lower() == 'true'
     proxy_file_path = None
+
+    logger.info(f"Received start request with stability_mode: {stability_mode}")
 
     if 'proxyFile' in request.files:
         file = request.files['proxyFile']
@@ -171,7 +183,8 @@ def start_bot():
         threads=threads,
         proxy_file=proxy_file_path,
         timeout=timeout,
-        proxy_type=proxy_type
+        proxy_type=proxy_type,
+        stability_mode=stability_mode
     )
 
     if proxy_file_path and os.path.exists(proxy_file_path):

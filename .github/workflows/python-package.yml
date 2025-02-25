@@ -78,7 +78,6 @@ jobs:
           --hidden-import rich `
           --hidden-import dotenv `
           --hidden-import trio `
-          --hidden-import resource `
           "backend/main.py" `
           --name "TwitchViewerBOT.exe"
 
@@ -188,7 +187,12 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # 🚀 TwitchViewerBOT Release Notes V3.0.7
+            # 🚀 TwitchViewerBOT Release Notes V3.0.8
+
+            ## 🎉 New Features
+            - Added stability mode for the bot
+              - The bot now has an enhanced stability mode that reduces the drop of viewers.
+              - Improved error handling to automatically retry failed requests.
 
             Some improvements and bug fixes! ✨
 

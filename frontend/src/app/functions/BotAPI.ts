@@ -6,6 +6,7 @@ export const startBot = async (config: {
   proxyFile?: File;
   timeout?: number;
   proxyType?: string;
+  stabilityMode?: boolean;
 }) => {
   const formData = new FormData();
   formData.append("channelName", config.channelName);
