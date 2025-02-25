@@ -10,6 +10,7 @@ import webbrowser
 from api import api
 from gevent.pywsgi import WSGIServer
 import argparse
+import resource
 
 def get_env_path():
     """Get the correct path for .env file in both dev and PyInstaller environments"""
@@ -186,7 +187,13 @@ def open_browser():
     print("Opening browser...")
     webbrowser.open('https://velbots.shop')
 
+def set_resource_limits():
+    # Increase the soft limit for number of open files
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (min(4096, hard), hard))
+
 if __name__ == '__main__':
+    set_resource_limits()
     # Create uploads directory if it doesn't exist
     uploads_dir = os.path.join(os.path.dirname(app.instance_path), 'uploads')
     if not os.path.exists(uploads_dir):

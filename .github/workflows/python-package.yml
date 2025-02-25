@@ -186,18 +186,9 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            # 🚀 TwitchViewerBOT Release Notes V3.0.6
+            # 🚀 TwitchViewerBOT Release Notes V3.0.7
 
-            ## Features
-            - Added multi-protocol support for the proxies (HTTP, HTTPS, SOCKS4, SOCKS5)
-            - New proxies scraping method
-            - Added the option to use URL or channel name
-
-            ## UI Improvements
-            - Added a new theme for the UI
-            - Added status indicators for the bot
-
-            And more improvements and bug fixes! ✨
+            Some improvements and bug fixes! ✨
 
           draft: false
           prerelease: false

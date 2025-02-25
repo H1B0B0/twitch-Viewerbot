@@ -47,6 +47,7 @@ export default function ViewerBotInterface() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [proxyFile, setProxyFile] = useState<File | null>(null);
+  const [unactivated, setUnactivated] = useState(false);
   const [stats, setStats] = useState({
     totalProxies: 0,
     aliveProxies: 0,
@@ -66,6 +67,14 @@ export default function ViewerBotInterface() {
     proxy_loading_progress: 0,
     startup_progress: 0,
   });
+
+  useEffect(() => {
+    if (botStatus.state.toLowerCase() === "stopping") {
+      setUnactivated(true);
+    } else {
+      setUnactivated(false);
+    }
+  }, [botStatus]);
 
   const [systemMetrics, setSystemMetrics] = useState<{
     cpu: MetricData;
@@ -204,15 +213,12 @@ export default function ViewerBotInterface() {
     }
   }, [profile, channelNameModified, config.channelName]);
 
-  // Modifier la vérification initiale de l'état du bot
   useEffect(() => {
     const checkBotStatus = async () => {
       try {
         const stats = await getBotStats();
-        // Si le bot a des threads actifs, il est en cours d'exécution
         if (stats.active_threads > 0 || stats.is_running) {
           setIsLoading(true);
-          // Mettre à jour les stats
           setStats((prevStats) => ({
             ...prevStats,
             activeThreads: stats.active_threads,
@@ -221,7 +227,6 @@ export default function ViewerBotInterface() {
             request_count: stats.request_count,
           }));
 
-          // Restaurer la configuration du bot si elle existe
           if (stats.config) {
             const { threads, timeout, proxy_type } = stats.config;
             const parsedTimeout = parseInt(timeout, 10);
@@ -239,11 +244,32 @@ export default function ViewerBotInterface() {
       }
     };
 
-    // Vérifier l'état du bot au chargement de la page
     checkBotStatus();
-  }, []); // Exécuter une seule fois au montage
+  }, []);
+
+  useEffect(() => {
+    const checkBotStatusPeriodically = () => {
+      if (
+        botStatus.state.toLowerCase() !== "stopping" &&
+        botStatus.state.toLowerCase() !== "starting"
+      ) {
+        fetchStats();
+      }
+    };
+
+    const interval = setInterval(checkBotStatusPeriodically, 3000);
+    return () => clearInterval(interval);
+  }, [botStatus]);
 
   const handleStart = async () => {
+    // Add protection to prevent starting during transitional states
+    if (
+      botStatus.state.toLowerCase() === "stopping" ||
+      botStatus.state.toLowerCase() === "starting"
+    ) {
+      return;
+    }
+
     if (!config.channelName) {
       toast.error("Channel name or url is required");
       return;
@@ -274,6 +300,14 @@ export default function ViewerBotInterface() {
   };
 
   const handleStop = async () => {
+    // Add protection to prevent stopping during transitional states
+    if (
+      botStatus.state.toLowerCase() === "stopping" ||
+      botStatus.state.toLowerCase() === "starting"
+    ) {
+      return;
+    }
+
     try {
       setIsLoading(false); // Set loading to false immediately
       await stopBot();
@@ -584,6 +618,7 @@ export default function ViewerBotInterface() {
                       key={type}
                       variant={config.proxyType === type ? "solid" : "bordered"}
                       onPress={() => setConfig({ ...config, proxyType: type })}
+                      disabled={unactivated}
                     >
                       {type}
                     </Button>
@@ -605,10 +640,29 @@ export default function ViewerBotInterface() {
           size="lg"
           fullWidth
           onPress={isLoading ? handleStop : handleStart}
-          className="relative group overflow-hidden"
+          isDisabled={
+            botStatus.state.toLowerCase() === "stopping" ||
+            botStatus.state.toLowerCase() === "starting" ||
+            unactivated
+          }
+          className={`relative group overflow-hidden ${
+            botStatus.state.toLowerCase() === "stopping" ||
+            botStatus.state.toLowerCase() === "starting"
+              ? "opacity-50 cursor-not-allowed pointer-events-none"
+              : ""
+          }`}
         >
           <span className="relative z-10">
-            {isLoading ? "Stop Bot" : "Start Bot"}
+            {botStatus.state.toLowerCase() === "stopping"
+              ? "Stopping"
+              : botStatus.state.toLowerCase() === "starting"
+              ? "Starting"
+              : isLoading
+              ? "Stop Bot"
+              : "Start Bot"}
+            {(botStatus.state.toLowerCase() === "stopping" ||
+              botStatus.state.toLowerCase() === "starting") &&
+              " (Please wait...)"}
           </span>
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 group-hover:opacity-100 opacity-0 transition-opacity duration-300" />
         </Button>
