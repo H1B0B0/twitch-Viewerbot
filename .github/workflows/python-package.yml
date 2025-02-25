@@ -78,6 +78,7 @@ jobs:
           --hidden-import rich `
           --hidden-import dotenv `
           --hidden-import trio `
+          --hidden-import resource `
           "backend/main.py" `
           --name "TwitchViewerBOT.exe"
 
@@ -153,6 +154,7 @@ jobs:
           --hidden-import rich \
           --hidden-import dotenv \
           --hidden-import trio \
+          --hidden-import resource \
           "backend/main.py" \
           --name "TwitchViewerBOT"
 
