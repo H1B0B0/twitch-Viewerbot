@@ -55,7 +55,7 @@ A modern web application for generating Twitch views using proxies, built with a
 
 ## Usage [DEV]
 
-1. Open your web browser and navigate to `http://localhost:3000`.
+1. Open your web browser and navigate to `https://velbots.shop`.
 2. Enter the number of threads you want to run.
 3. Enter the name of the Twitch channel you want to generate views for.
 4. (Optional) Upload your custom proxy list.
