@@ -52,14 +52,6 @@ A modern web application for generating Twitch views using proxies, built with a
    ```shell
    pip install -r requirements.txt
    ```
-4. Start the Flask backend:
-   ```shell
-   python run.py
-   ```
-5. Start the React frontend:
-   ```shell
-   npm start
-   ```
 
 ## Usage [DEV]
 
