@@ -52,6 +52,10 @@ A modern web application for generating Twitch views using proxies, built with a
    ```shell
    pip install -r requirements.txt
    ```
+4. Launch the backend:
+   ```shell
+   python ./backend/main.py --dev
+   ```
 
 ## Usage [DEV]
 
