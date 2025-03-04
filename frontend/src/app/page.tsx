@@ -376,7 +376,8 @@ export default function ViewerBotInterface() {
             </Button>
           )}
           <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Twitch Viewer Bot
+            Twitch Viewer Bot{" "}
+            <span className="text-sm text-gray-500">BETA</span>
           </h1>
           <p className="text-xl font-medium">
             {profile

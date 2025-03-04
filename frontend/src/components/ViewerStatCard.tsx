@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardBody } from "@heroui/react";
 import { FaArrowUp, FaArrowDown, FaMinus } from "react-icons/fa";
 import { useViewerCache } from "../hooks/useViewerCache";
@@ -12,12 +12,31 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
   const { previousValue, percentageChange } = useViewerCache(value);
   const difference = value - previousValue;
   const [showGlow, setShowGlow] = useState(false);
+  const [addedValue, setAddedValue] = useState<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isIncreasing, setIsIncreasing] = useState<boolean>(false);
 
   useEffect(() => {
     if (difference > 0) {
       setShowGlow(true);
-      const timer = setTimeout(() => setShowGlow(false), 2000);
-      return () => clearTimeout(timer);
+      setIsIncreasing(true);
+      setAddedValue(difference);
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = setTimeout(() => {
+        setShowGlow(false);
+        setIsIncreasing(false);
+        setAddedValue(0);
+      }, 2000);
+
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
     }
   }, [value, difference]);
 
@@ -46,6 +65,27 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
         shadow="sm"
       >
         <CardBody className="space-y-4 p-6 flex flex-col justify-between h-full">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-5">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern
+                  id="microGrid"
+                  width="10"
+                  height="10"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 10 0 L 0 0 0 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                  />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#microGrid)" />
+            </svg>
+          </div>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider">
               Live Viewers
@@ -58,7 +98,7 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
             )}
           </div>
           <div className="space-y-2">
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 relative">
               <span
                 className={cn(
                   "text-4xl font-black bg-clip-text text-transparent transition-all duration-1000",
@@ -69,6 +109,11 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
               >
                 {value.toLocaleString()}
               </span>
+              {isIncreasing && addedValue > 0 && (
+                <span className="absolute -right-12 top-0 text-xs font-medium text-purple-600 animate-fade-up">
+                  +{addedValue.toLocaleString()}
+                </span>
+              )}
             </div>
             <div className={`flex items-center gap-1 ${getTrendColor()}`}>
               {getTrendIcon()}
