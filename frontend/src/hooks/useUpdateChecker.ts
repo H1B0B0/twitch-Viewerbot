@@ -1,10 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const GITHUB_API =
   "https://api.github.com/repos/H1B0B0/twitch-Viewerbot/releases/latest";
-const CURRENT_VERSION = "3.0.9";
+const CURRENT_VERSION = process.env.NEXT_PUBLIC_REACT_APP_VERSION || "0.0.0";
 
 interface GithubRelease {
   tag_name: string;

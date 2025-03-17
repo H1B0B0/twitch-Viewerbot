@@ -136,3 +136,5 @@ output.wav
 src/twitchbot/tokens.txt
 src/twitchbot/valid_tokens.txt
 .DS_Store
+
+backend/static
