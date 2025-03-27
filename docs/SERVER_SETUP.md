@@ -132,15 +132,102 @@ sudo lsof -i :443
 sudo systemctl stop apache2
 ```
 
-### Certificate Renewal
+### ERR_CONNECTION_REFUSED Error
 
-Let's Encrypt certificates expire after 90 days. To renew them:
+If you get "ERR_CONNECTION_REFUSED" when trying to access your server, check:
 
-```bash
-sudo certbot renew
-```
+1. **Check if the server is running:**
 
-Then copy the renewed certificates to the application directory.
+   ```bash
+   ps aux | grep python
+   ```
+
+2. **Verify the domain points to your server's public IP:**
+
+   ```bash
+   # Install dig if needed
+   sudo apt install dnsutils
+
+   # Check what IP your domain resolves to
+   dig +short yourdomain.com
+
+   # Compare with your public IP
+   curl https://api.ipify.org
+   ```
+
+3. **Check if ports are open on your server:**
+
+   ```bash
+   # Install netstat if needed
+   sudo apt install net-tools
+
+   # Check listening ports
+   sudo netstat -tulpn | grep -E ':80|:443'
+   ```
+
+4. **Verify firewall settings:**
+
+   ```bash
+   # For UFW
+   sudo ufw status
+
+   # For iptables
+   sudo iptables -L
+
+   # Allow ports if needed
+   sudo ufw allow 80/tcp
+   sudo ufw allow 443/tcp
+   ```
+
+5. **Check port forwarding on your router:**
+
+   - Log into your router's admin panel
+   - Look for port forwarding or virtual server settings
+   - Ensure ports 80 and 443 are forwarded to your server's internal IP
+
+6. **Run the diagnostic script:**
+   ```bash
+   python backend/network_check.py --domain yourdomain.com
+   ```
+
+### Private/Local Domains
+
+If you're using a private domain (like example.private.local):
+
+1. **For local network access only:**
+
+   - Add the domain to your hosts file on client machines:
+
+   ```
+   192.168.1.x  yourdomain.private.local
+   ```
+
+2. **For public access:**
+   - Use a public domain instead
+   - Or set up Split DNS with a local DNS server
+
+### Certificate Works But Site Inaccessible
+
+If your certificates are valid but the site is still inaccessible:
+
+1. **Check application logs:**
+
+   ```bash
+   # View the last 50 lines of the log
+   tail -n 50 application.log
+   ```
+
+2. **Test HTTPS locally on the server:**
+
+   ```bash
+   curl -k https://localhost
+   ```
+
+3. **Check if certificates are properly set up:**
+   ```bash
+   # Test the certificate configuration
+   sudo openssl s_client -connect localhost:443
+   ```
 
 ## Running as a Service
 
