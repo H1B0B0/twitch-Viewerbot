@@ -11,8 +11,6 @@ from api import api
 from gevent.pywsgi import WSGIServer
 import argparse
 import platform
-import subprocess
-import shutil
 
 if platform.system() != "Windows":
     import resource
@@ -200,217 +198,6 @@ def after_request(response):
         response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-def setup_lets_encrypt(domain, email, force_renewal=False):
-    """
-    Set up Let's Encrypt certificates for the domain
-    
-    Args:
-        domain: The domain name to get a certificate for
-        email: Email address for registration and recovery
-        force_renewal: Whether to force certificate renewal
-    
-    Returns:
-        Tuple of (cert_path, key_path) or None if failed
-    """
-    if not domain:
-        logger.error("Domain name is required for Let's Encrypt")
-        return None
-        
-    if not email:
-        logger.error("Email address is required for Let's Encrypt")
-        return None
-    
-    certs_dir = os.path.join(os.path.dirname(__file__), 'certs')
-    os.makedirs(certs_dir, exist_ok=True)
-    
-    cert_path = os.path.join(certs_dir, f'{domain}.cert')
-    key_path = os.path.join(certs_dir, f'{domain}.key')
-    
-    # Check if certificates already exist and not forcing renewal
-    if os.path.exists(cert_path) and os.path.exists(key_path) and not force_renewal:
-        logger.info(f"Using existing certificates for {domain}")
-        return (cert_path, key_path)
-    
-    logger.info(f"Obtaining Let's Encrypt certificate for {domain}")
-    
-    # First, check if the domain is resolvable
-    try:
-        import socket
-        socket.gethostbyname(domain)
-        logger.info(f"Domain {domain} is resolvable")
-    except Exception as e:
-        logger.error(f"Domain {domain} is not resolvable: {e}")
-        logger.error("Make sure your domain points to this server's IP address")
-        return None
-    
-    # Create temporary directory for certbot with absolute paths
-    temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'temp_certbot'))
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    # Check if port 80 is available for validation
-    try:
-        import socket
-        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.bind(('0.0.0.0', 80))
-        test_socket.close()
-        logger.info("Port 80 is available for Let's Encrypt validation")
-        port_available = True
-    except Exception as e:
-        logger.warning(f"Port 80 is not available: {e}")
-        logger.warning("Will try to stop any service using port 80 during certificate issuance")
-        port_available = False
-    
-    # Start a temporary web server to handle ACME challenges if needed
-    http_server = None
-    original_port_80_state = None
-    
-    try:
-        # Check if certbot is available first
-        try:
-            version_result = subprocess.run(['certbot', '--version'], 
-                                           capture_output=True, text=True, timeout=5)
-            if version_result.returncode != 0:
-                logger.error(f"Certbot not properly installed: {version_result.stderr}")
-                return None
-            logger.info(f"Certbot version: {version_result.stdout.strip()}")
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            logger.error(f"Certbot command failed or not found: {e}")
-            return None
-            
-        if not port_available:
-            # Try to temporarily stop services on port 80
-            logger.info("Attempting to free port 80 for Let's Encrypt validation")
-            try:
-                if platform.system() != "Windows":
-                    # On Linux/Unix, try to find and stop the process using port 80
-                    find_process = subprocess.run(
-                        "lsof -i :80 | awk 'NR>1 {print $2}'", 
-                        shell=True, capture_output=True, text=True)
-                    process_ids = find_process.stdout.strip().split('\n')
-                    
-                    if process_ids and process_ids[0]:
-                        logger.info(f"Found processes using port 80: {process_ids}")
-                        original_port_80_state = process_ids
-                        for pid in process_ids:
-                            if pid:
-                                try:
-                                    subprocess.run(['kill', '-9', pid], check=True)
-                                    logger.info(f"Temporarily stopped process {pid} using port 80")
-                                except subprocess.SubprocessError as e:
-                                    logger.error(f"Failed to stop process {pid}: {e}")
-                else:
-                    # On Windows, this is more complex - we'll just warn the user
-                    logger.warning("On Windows, please manually ensure port 80 is free for Let's Encrypt validation")
-            except Exception as e:
-                logger.error(f"Failed to free port 80: {e}")
-            
-            # Double-check if port is now available
-            try:
-                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                test_socket.bind(('0.0.0.0', 80))
-                test_socket.close()
-                logger.info("Successfully freed port 80 for validation")
-                port_available = True
-            except Exception as e:
-                logger.warning(f"Port 80 is still not available: {e}")
-                logger.warning("Will attempt to get certificate anyway")
-            
-        # Use certbot to obtain a certificate
-        cmd = [
-            'certbot', 'certonly', '--standalone',
-            '--preferred-challenges', 'http',
-            '--agree-tos',
-            '--email', email,
-            '-d', domain,
-            '--non-interactive',
-            '--config-dir', temp_dir,
-            '--work-dir', temp_dir,
-            '--logs-dir', temp_dir
-        ]
-        
-        logger.info(f"Running command: {' '.join(cmd)}")
-        
-        # Try running certbot with more detailed debugging and timeout
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
-            
-            if result.returncode != 0:
-                logger.error(f"Failed to obtain certificate: {result.stderr}")
-                
-                # Try to gather more debug information
-                logger.info("Running certbot with debug options...")
-                debug_cmd = cmd + ['--debug']
-                debug_result = subprocess.run(debug_cmd, capture_output=True, text=True, timeout=180)
-                logger.info(f"Debug output: {debug_result.stdout}")
-                
-                # Check the log file if possible
-                log_path = os.path.join(temp_dir, 'letsencrypt.log')
-                if os.path.exists(log_path):
-                    with open(log_path, 'r') as f:
-                        log_contents = f.read()
-                        logger.info(f"Log file contents: {log_contents}")
-                
-                return None
-                
-            # Copy the certificates to our certs directory
-            live_dir = os.path.join(temp_dir, 'live', domain)
-            
-            if not os.path.exists(live_dir):
-                logger.error(f"Expected certificate directory not found: {live_dir}")
-                # Try to find where certificates were actually created
-                for root, dirs, files in os.walk(temp_dir):
-                    if 'fullchain.pem' in files and 'privkey.pem' in files:
-                        logger.info(f"Found certificates in unexpected location: {root}")
-                        live_dir = root
-                        break
-                else:
-                    return None
-                    
-            # Now copy files if we have a valid live_dir
-            cert_file = os.path.join(live_dir, 'fullchain.pem')
-            key_file = os.path.join(live_dir, 'privkey.pem')
-            
-            if os.path.exists(cert_file) and os.path.exists(key_file):
-                shutil.copy(cert_file, cert_path)
-                shutil.copy(key_file, key_path)
-                logger.info(f"Successfully obtained certificates for {domain}")
-                return (cert_path, key_path)
-            else:
-                logger.error(f"Certificate files not found in expected location")
-                return None
-                
-        except subprocess.TimeoutExpired:
-            logger.error("Certbot command timed out after 180 seconds")
-            return None
-    
-    except Exception as e:
-        logger.error(f"Error setting up Let's Encrypt: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return None
-    finally:
-        # Restore original state of port 80 if we stopped any services
-        if original_port_80_state:
-            logger.info("Restoring original services that were using port 80")
-            # This part is complex and depends on your system
-            # For simplicity, we'll just log that manual intervention may be needed
-            logger.info("You may need to manually restart services that were using port 80")
-            
-        # Clean up temporary directory but save logs if there was an error
-        try:
-            log_path = os.path.join(temp_dir, 'letsencrypt.log')
-            if os.path.exists(log_path):
-                log_backup = os.path.join(os.path.dirname(__file__), 'certbot_error.log')
-                shutil.copy(log_path, log_backup)
-                logger.info(f"Saved certbot logs to {log_backup}")
-        except Exception as e:
-            logger.error(f"Error saving certbot logs: {e}")
-            
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error cleaning up temporary directory: {e}")
-
 def open_browser():
     if args.no_browser:
         return
@@ -428,6 +215,67 @@ def set_resource_limits():
     else:
         # Sur Windows, cette fonction ne fait rien
         logger.info("Resource limits adjustment not supported on Windows")
+
+def find_certificates(domain=None):
+    """
+    Find SSL certificates in the certs directory
+    
+    Args:
+        domain: Optional domain name to look for domain-specific certificates
+        
+    Returns:
+        Tuple of (cert_path, key_path) or None if no certificates found
+    """
+    certs_dir = os.path.join(os.path.dirname(__file__), 'certs')
+    if not os.path.exists(certs_dir):
+        os.makedirs(certs_dir, exist_ok=True)
+        return None
+    
+    # Check all possible certificate filenames
+    cert_candidates = []
+    key_candidates = []
+    
+    # Domain-specific filenames
+    if domain:
+        # Our standard naming convention
+        cert_candidates.extend([
+            os.path.join(certs_dir, f'{domain}.cert'),
+            os.path.join(certs_dir, f'fullchain.pem'),
+            os.path.join(certs_dir, f'{domain}.pem'),
+            os.path.join(certs_dir, f'{domain}_fullchain.pem')
+        ])
+        
+        key_candidates.extend([
+            os.path.join(certs_dir, f'{domain}.key'),
+            os.path.join(certs_dir, 'privkey.key'),
+            os.path.join(certs_dir, 'privekey.key'),  # Common typo
+            os.path.join(certs_dir, f'{domain}_privkey.pem')
+        ])
+    
+    # Generic filenames
+    cert_candidates.extend([
+        os.path.join(certs_dir, 'fullchain.pem'),
+        os.path.join(certs_dir, 'cert.pem'),
+        os.path.join(certs_dir, 'certificate.pem'),
+        os.path.join(certs_dir, 'velbots.shop.cert'),
+    ])
+    
+    key_candidates.extend([
+        os.path.join(certs_dir, 'privkey.pem'),
+        os.path.join(certs_dir, 'privkey.key'),
+        os.path.join(certs_dir, 'privekey.key'),
+        os.path.join(certs_dir, 'key.pem'),
+        os.path.join(certs_dir, 'velbots.shop.key'),
+    ])
+    
+    # Find the first existing certificate and key
+    cert_path = next((path for path in cert_candidates if os.path.exists(path)), None)
+    key_path = next((path for path in key_candidates if os.path.exists(path)), None)
+    
+    if cert_path and key_path:
+        logger.info(f"Found certificates: {cert_path}, {key_path}")
+        return (cert_path, key_path)
+    return None
 
 if __name__ == '__main__':
     set_resource_limits()
@@ -447,60 +295,45 @@ if __name__ == '__main__':
     from threading import Timer
     Timer(1.5, open_browser).start()
 
-    # Try Let's Encrypt if domain is provided
-    lets_encrypt_certs = None
+    # Try to find existing certificates first
+    certs = None
     if args.domain:
-        logger.info(f"Attempting to set up Let's Encrypt for domain: {args.domain}")
-        lets_encrypt_certs = setup_lets_encrypt(args.domain, args.email, args.renew)
-        if lets_encrypt_certs:
-            logger.info(f"Using Let's Encrypt certificates for {args.domain}")
-            CERT_PATH, KEY_PATH = lets_encrypt_certs
-        else:
-            logger.warning("Let's Encrypt setup failed, falling back to local certificates")
-
-    if not lets_encrypt_certs:
-        # Use local certificates as fallback
+        logger.info(f"Looking for certificates for domain: {args.domain}")
+        certs = find_certificates(args.domain)
+    
+    if not certs:
+        logger.info("Looking for any available certificates")
+        certs = find_certificates()
+        
+    if certs:
+        CERT_PATH, KEY_PATH = certs
+        logger.info(f"Using certificates: {CERT_PATH}, {KEY_PATH}")
+    else:
+        # Use default certificate paths
         CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
         KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
-        
-        if not os.path.exists(CERT_PATH) or not os.path.exists(KEY_PATH):
-            logger.warning("Local certificates not found, will fall back to HTTP mode")
+        logger.info(f"Using default certificate paths: {CERT_PATH}, {KEY_PATH}")
 
     try:
         if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
-            # Try to start HTTPS server
             logger.info("Starting HTTPS on port 443")
-            try:
-                https_server = WSGIServer(
-                    ('0.0.0.0', 443),
-                    app,
-                    certfile=CERT_PATH,
-                    keyfile=KEY_PATH,
-                    log=None  # Disable WSGIServer logs in production
-                )
-                logger.info("HTTPS server created successfully, starting server...")
-                https_server.serve_forever()
-            except Exception as e:
-                logger.error(f"Failed to start HTTPS server: {e}")
-                logger.warning("Falling back to unsecure HTTP mode")
-                raise  # Re-raise to fall back to HTTP mode
+            https_server = WSGIServer(
+                ('0.0.0.0', 443),
+                app,
+                certfile=CERT_PATH,
+                keyfile=KEY_PATH,
+                log=None  # Disable WSGIServer logs in production
+            )
+            https_server.serve_forever()
         else:
-            logger.warning("SSL certificates not found, falling back to HTTP mode")
-            raise FileNotFoundError("SSL certificates not available")
-            
+            logger.warning("SSL certificates not found, running in HTTP mode")
+            if getattr(sys, 'frozen', False):
+                # Production mode
+                app.run(debug=False, host='0.0.0.0', port=80)
+            else:
+                # Development mode
+                app.run(debug=True, host='0.0.0.0', port=3001)
     except Exception as e:
-        # Fallback to HTTP mode if HTTPS fails
-        logger.warning(f"⚠️ RUNNING IN UNSECURE MODE (HTTP) ⚠️ - Reason: {str(e)}")
-        logger.warning("Your connection is not encrypted and may not be secure.")
-        
-        # Decide which port to use
-        http_port = 80 if not getattr(sys, 'frozen', False) and not args.dev else 3001
-        
-        if http_port == 80:
-            logger.info(f"Starting HTTP server on port {http_port}")
-            http_server = WSGIServer(('0.0.0.0', http_port), app, log=None)
-            http_server.serve_forever()
-        else:
-            # Use Flask's built-in server for development
-            logger.info(f"Starting development HTTP server on port {http_port}")
-            app.run(debug=not getattr(sys, 'frozen', False), host='0.0.0.0', port=http_port)
+        logger.error(f"Failed to start server: {e}")
+        logger.warning("Falling back to HTTP on port 3001")
+        app.run(debug=not getattr(sys, 'frozen', False), host='0.0.0.0', port=3001)

@@ -135,6 +135,8 @@ To deploy the application on a server with remote access:
 
 6. Access the application securely at https://yourdomain.com
 
+For detailed instructions, see the [Server Setup Guide](docs/SERVER_SETUP.md).
+
 #### Troubleshooting Certificate Issues
 
 If Let's Encrypt certification fails, the application will automatically fall back to HTTP mode. Common issues include:
