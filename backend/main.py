@@ -11,6 +11,8 @@ from api import api
 from gevent.pywsgi import WSGIServer
 import argparse
 import platform
+import subprocess
+import shutil
 
 if platform.system() != "Windows":
     import resource
@@ -43,6 +45,10 @@ logger = logging.getLogger(__name__)
 # Parse command line arguments - Do this first!
 parser = argparse.ArgumentParser()
 parser.add_argument('--dev', action='store_true', help='Run in development mode without authentication')
+parser.add_argument('--domain', type=str, help='Domain name for Let\'s Encrypt certificate')
+parser.add_argument('--email', type=str, help='Email address for Let\'s Encrypt registration')
+parser.add_argument('--renew', action='store_true', help='Force renewal of Let\'s Encrypt certificate')
+parser.add_argument('--no-browser', action='store_true', help='Don\'t open browser automatically')
 args = parser.parse_args()
 
 # Load environment variables from .env file
@@ -194,9 +200,86 @@ def after_request(response):
         response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
+def setup_lets_encrypt(domain, email, force_renewal=False):
+    """
+    Set up Let's Encrypt certificates for the domain
+    
+    Args:
+        domain: The domain name to get a certificate for
+        email: Email address for registration and recovery
+        force_renewal: Whether to force certificate renewal
+    
+    Returns:
+        Tuple of (cert_path, key_path) or None if failed
+    """
+    if not domain:
+        logger.error("Domain name is required for Let's Encrypt")
+        return None
+        
+    if not email:
+        logger.error("Email address is required for Let's Encrypt")
+        return None
+    
+    certs_dir = os.path.join(os.path.dirname(__file__), 'certs')
+    os.makedirs(certs_dir, exist_ok=True)
+    
+    cert_path = os.path.join(certs_dir, f'{domain}.cert')
+    key_path = os.path.join(certs_dir, f'{domain}.key')
+    
+    # Check if certificates already exist and not forcing renewal
+    if os.path.exists(cert_path) and os.path.exists(key_path) and not force_renewal:
+        logger.info(f"Using existing certificates for {domain}")
+        return (cert_path, key_path)
+    
+    logger.info(f"Obtaining Let's Encrypt certificate for {domain}")
+    
+    # Create temporary directory for certbot
+    temp_dir = os.path.join(os.path.dirname(__file__), 'temp_certbot')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    try:
+        # Use certbot to obtain a certificate
+        cmd = [
+            'certbot', 'certonly', '--standalone',
+            '--preferred-challenges', 'http',
+            '--agree-tos',
+            '--email', email,
+            '-d', domain,
+            '--non-interactive',
+            '--config-dir', temp_dir,
+            '--work-dir', temp_dir,
+            '--logs-dir', temp_dir
+        ]
+        
+        logger.info(f"Running command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            logger.error(f"Failed to obtain certificate: {result.stderr}")
+            return None
+        
+        # Copy the certificates to our certs directory
+        live_dir = os.path.join(temp_dir, 'live', domain)
+        shutil.copy(os.path.join(live_dir, 'fullchain.pem'), cert_path)
+        shutil.copy(os.path.join(live_dir, 'privkey.pem'), key_path)
+        
+        logger.info(f"Successfully obtained certificates for {domain}")
+        return (cert_path, key_path)
+    
+    except Exception as e:
+        logger.error(f"Error setting up Let's Encrypt: {e}")
+        return None
+    finally:
+        # Clean up temporary directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 def open_browser():
+    if args.no_browser:
+        return
+    
     print("Opening browser...")
-    webbrowser.open('https://velbots.shop')
+    url = f"https://{args.domain}" if args.domain else "https://velbots.shop"
+    webbrowser.open(url)
 
 def set_resource_limits():
     # Vérifier si le module resource est disponible (systèmes Unix/Linux/macOS)
@@ -226,9 +309,20 @@ if __name__ == '__main__':
     from threading import Timer
     Timer(1.5, open_browser).start()
 
-    CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
-    KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
+    # Try Let's Encrypt if domain is provided
+    lets_encrypt_certs = None
+    if args.domain:
+        lets_encrypt_certs = setup_lets_encrypt(args.domain, args.email, args.renew)
+        if lets_encrypt_certs:
+            logger.info(f"Using Let's Encrypt certificates for {args.domain}")
+            CERT_PATH, KEY_PATH = lets_encrypt_certs
+        else:
+            logger.warning("Let's Encrypt setup failed, falling back to local certificates")
 
+    if not lets_encrypt_certs:
+        # Use local certificates as fallback
+        CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
+        KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
 
     if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
         https_server = WSGIServer(
