@@ -138,6 +138,21 @@ To deploy the application on a server with remote access:
 - Use the `--renew` flag to force certificate renewal
 - Use the `--no-browser` flag to prevent the application from opening a browser
 - Run the application with sudo or as root to bind to port 443
+- The application will automatically fall back to HTTP mode on port 80 if certificates are unavailable
+
+```shell
+# Running with Let's Encrypt (preferred secure mode)
+sudo python ./backend/main.py --domain yourdomain.com --email your@email.com --no-browser
+
+# Running in development mode
+python ./backend/main.py --dev
+```
+
+#### Security Notes
+
+- When certificates are unavailable, the application will fall back to unsecure HTTP mode
+- In HTTP mode, your data is not encrypted during transmission
+- For production use, it's recommended to ensure valid certificates are available
 
 ## macOS Installation Guide
 

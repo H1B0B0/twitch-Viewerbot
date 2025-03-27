@@ -324,21 +324,40 @@ if __name__ == '__main__':
         CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.cert')
         KEY_PATH = os.path.join(os.path.dirname(__file__), 'certs', 'velbots.shop.key')
 
-    if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
-        https_server = WSGIServer(
-            ('0.0.0.0', 443),
-            app,
-            certfile=CERT_PATH,
-            keyfile=KEY_PATH,
-            log=None  # Disable WSGIServer logs in production
-        )
-        logger.info("Starting HTTPS on port 443")
-        https_server.serve_forever()
-    else:
-        logger.warning("SSL certificates not found, running in development mode")
-        if getattr(sys, 'frozen', False):
-            # Production mode
-            app.run(debug=False, host='0.0.0.0', port=3001)
+    try:
+        if os.path.exists(CERT_PATH) and os.path.exists(KEY_PATH):
+            # Try to start HTTPS server
+            logger.info("Starting HTTPS on port 443")
+            try:
+                https_server = WSGIServer(
+                    ('0.0.0.0', 443),
+                    app,
+                    certfile=CERT_PATH,
+                    keyfile=KEY_PATH,
+                    log=None  # Disable WSGIServer logs in production
+                )
+                https_server.serve_forever()
+            except Exception as e:
+                logger.error(f"Failed to start HTTPS server: {e}")
+                logger.warning("Falling back to unsecure HTTP mode")
+                raise  # Re-raise to fall back to HTTP mode
         else:
-            # Development mode
-            app.run(debug=True, host='0.0.0.0', port=3001)
+            logger.warning("SSL certificates not found, falling back to HTTP mode")
+            raise FileNotFoundError("SSL certificates not available")
+            
+    except Exception:
+        # Fallback to HTTP mode if HTTPS fails
+        logger.warning("⚠️ RUNNING IN UNSECURE MODE (HTTP) ⚠️")
+        logger.warning("Your connection is not encrypted and may not be secure.")
+        
+        # Decide which port to use
+        http_port = 80 if not getattr(sys, 'frozen', False) and not args.dev else 3001
+        
+        if http_port == 80:
+            logger.info(f"Starting HTTP server on port {http_port}")
+            http_server = WSGIServer(('0.0.0.0', http_port), app, log=None)
+            http_server.serve_forever()
+        else:
+            # Use Flask's built-in server for development
+            logger.info(f"Starting development HTTP server on port {http_port}")
+            app.run(debug=not getattr(sys, 'frozen', False), host='0.0.0.0', port=http_port)
