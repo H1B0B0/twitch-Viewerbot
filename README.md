@@ -100,19 +100,54 @@ To deploy the application on a server with remote access:
 
    # CentOS/RHEL
    sudo yum install certbot
+
+   # Make sure you have the latest version
+   sudo certbot --version
    ```
 
-2. Make sure your domain points to your server and ports 80 and 443 are open
+2. Make sure your domain points to your server's IP address and ports 80 and 443 are open
 
-3. Launch the application with domain and email arguments:
+   - **Important**: Port 80 must be free during the certificate issuance process
+   - Temporarily stop any services using port 80 (like Apache or Nginx)
+
+3. You can manually obtain a certificate first (recommended approach):
+
+   ```shell
+   sudo certbot certonly --standalone -d yourdomain.com
+   ```
+
+4. Copy the generated certificates to the application's certs directory:
+
+   ```shell
+   # Create certs directory if it doesn't exist
+   mkdir -p ./backend/certs
+
+   # Copy the certificates (adjust paths as needed)
+   sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem ./backend/certs/yourdomain.com.cert
+   sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem ./backend/certs/yourdomain.com.key
+   ```
+
+5. Launch the application with domain and email arguments:
 
    ```shell
    sudo python ./backend/main.py --domain yourdomain.com --email your@email.com --no-browser
    ```
 
-4. The application will automatically obtain Let's Encrypt certificates
+6. Access the application securely at https://yourdomain.com
 
-5. Access the application securely at https://yourdomain.com
+#### Troubleshooting Certificate Issues
+
+If Let's Encrypt certification fails, the application will automatically fall back to HTTP mode. Common issues include:
+
+- **Domain not properly configured** - Ensure your domain properly points to your server's IP
+- **Ports not open** - Make sure ports 80 and 443 are open in your firewall
+- **Port 80 in use** - Temporarily stop any web servers or services using port 80
+- **Verification timeout** - Let's Encrypt servers must be able to reach your domain
+- **Certbot issues** - Try updating certbot or running it manually:
+  ```shell
+  sudo certbot certonly --standalone -d yourdomain.com
+  ```
+- **Check logs** - Look for `certbot_error.log` in the backend directory
 
 ## Usage
 
@@ -153,6 +188,9 @@ python ./backend/main.py --dev
 - When certificates are unavailable, the application will fall back to unsecure HTTP mode
 - In HTTP mode, your data is not encrypted during transmission
 - For production use, it's recommended to ensure valid certificates are available
+- You can manually obtain certificates and place them in the `backend/certs/` directory as:
+  - `yourdomain.com.cert` (the fullchain.pem from Let's Encrypt)
+  - `yourdomain.com.key` (the privkey.pem from Let's Encrypt)
 
 ## macOS Installation Guide
 
