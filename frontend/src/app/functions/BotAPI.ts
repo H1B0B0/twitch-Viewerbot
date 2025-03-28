@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://velbots.shop/api/bot";
+const API_BASE_URL = "http://localhost:3000/api";
 
 export const startBot = async (config: {
   channelName: string;
