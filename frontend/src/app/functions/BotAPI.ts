@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://velbots.shop/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://velbots.shop/api/bot";
 
 export const startBot = async (config: {
   channelName: string;
