@@ -168,23 +168,6 @@ If Let's Encrypt certification fails, the application will automatically fall ba
 - Frontend code is located in the `frontend` directory
 - Backend API endpoints are defined in `backend/main.py`
 
-### For Server Deployment
-
-- Use the `--domain` parameter to specify your domain name
-- Use the `--email` parameter to provide an email for Let's Encrypt registration
-- Use the `--renew` flag to force certificate renewal
-- Use the `--no-browser` flag to prevent the application from opening a browser
-- Run the application with sudo or as root to bind to port 443
-- The application will automatically fall back to HTTP mode on port 80 if certificates are unavailable
-
-```shell
-# Running with Let's Encrypt (preferred secure mode)
-sudo python ./backend/main.py --domain yourdomain.com --email your@email.com --no-browser
-
-# Running in development mode
-python ./backend/main.py --dev
-```
-
 #### Security Notes
 
 - When certificates are unavailable, the application will fall back to unsecure HTTP mode
