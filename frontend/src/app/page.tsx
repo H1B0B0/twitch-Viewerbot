@@ -129,17 +129,17 @@ export default function ViewerBotInterface() {
         network_down: 0,
       };
 
-      // Update system metrics with safe values
+      // Update system metrics with safe values - preserving previous values if new ones aren't available
       setSystemMetrics((prevMetrics) => {
         const updateMetric = (
           metric: MetricData,
           newValue: number | undefined
         ): MetricData => ({
           ...metric,
-          value: typeof newValue === "number" ? newValue : 0,
+          value: typeof newValue === "number" ? newValue : metric.value,
           history: [
             ...metric.history.slice(-29),
-            typeof newValue === "number" ? newValue : 0,
+            typeof newValue === "number" ? newValue : metric.value,
           ],
         });
 
@@ -148,27 +148,42 @@ export default function ViewerBotInterface() {
           memory: updateMetric(prevMetrics.memory, system_metrics.memory),
           network_up: updateMetric(
             prevMetrics.network_up,
-            Number(Number(system_metrics.network_up).toFixed(2))
+            Number(Number(system_metrics.network_up || 0).toFixed(2))
           ),
           network_down: updateMetric(
             prevMetrics.network_down,
-            Number(Number(system_metrics.network_down).toFixed(2))
+            Number(Number(system_metrics.network_down || 0).toFixed(2))
           ),
         };
       });
 
-      // Update bot stats
+      // Update bot stats with defensive coding - keep previous values if new ones aren't available
       setStats((prevStats) => ({
         ...prevStats,
-        activeThreads: stats.active_threads,
-        totalProxies: stats.total_proxies,
-        aliveProxies: stats.alive_proxies,
-        request_count: stats.request_count,
+        activeThreads:
+          stats.active_threads !== undefined
+            ? stats.active_threads
+            : prevStats.activeThreads,
+        totalProxies:
+          stats.total_proxies !== undefined
+            ? stats.total_proxies
+            : prevStats.totalProxies,
+        aliveProxies:
+          stats.alive_proxies !== undefined
+            ? stats.alive_proxies
+            : prevStats.aliveProxies,
+        request_count:
+          stats.request_count !== undefined
+            ? stats.request_count
+            : prevStats.request_count,
       }));
 
       // Update bot status
       if (stats.status) {
-        setBotStatus(stats.status);
+        setBotStatus((prevStatus) => ({
+          ...prevStatus,
+          ...stats.status,
+        }));
 
         // Handle error states
         if (stats.status.state === "error" && isLoading) {
@@ -178,11 +193,12 @@ export default function ViewerBotInterface() {
       }
 
       // Update isLoading based on bot state
-      if (!stats.is_running && isLoading) {
+      if (stats.is_running === false && isLoading) {
         setIsLoading(false);
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
+      // Don't reset states on error - maintain previous values
     }
   };
 

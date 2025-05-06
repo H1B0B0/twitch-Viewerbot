@@ -8,9 +8,16 @@ type StatCardProps = {
   value: number;
   total?: number;
   increment?: boolean;
+  useAnimation?: boolean;
 };
 
-export function StatCard({ title, value, total, increment }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  total,
+  increment,
+  useAnimation = true,
+}: StatCardProps) {
   const percentage = total ? (value / total) * 100 : 0;
   const [prevValue, setPrevValue] = useState<number>(value);
   const [isIncreasing, setIsIncreasing] = useState<boolean>(false);
@@ -153,8 +160,7 @@ export function StatCard({ title, value, total, increment }: StatCardProps) {
                 isRequestCard && isIncreasing && "scale-105"
               )}
             >
-              {title.toLowerCase().includes("thread") ||
-              title.toLowerCase().includes("requests") ? (
+              {useAnimation ? (
                 <AnimatedCounter value={value} />
               ) : (
                 value.toLocaleString()

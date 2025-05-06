@@ -138,3 +138,5 @@ src/twitchbot/valid_tokens.txt
 .DS_Store
 
 backend/static
+backend/certs/velbots.shop.key.backup
+backend/certs/velbots.shop.cert.backup
