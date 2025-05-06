@@ -251,7 +251,7 @@ jobs:
           body: |
             # 🚀 TwitchViewerBOT Release Notes V${{ github.ref }}
             ## 🎉 New Features
-              - UI Improvements
+              - Added auto renew of certificates for the backend server.
 
             Some improvements and bug fixes! ✨
 
