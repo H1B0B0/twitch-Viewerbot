@@ -252,6 +252,7 @@ jobs:
             # 🚀 TwitchViewerBOT Release Notes V${{ github.ref }}
             ## 🎉 New Features
               - UI Improvements
+              - Added auto renew of certificate
 
             Some improvements and bug fixes! ✨
 
