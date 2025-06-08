@@ -140,3 +140,6 @@ src/twitchbot/valid_tokens.txt
 backend/static
 backend/certs/velbots.shop.key.backup
 backend/certs/velbots.shop.cert.backup
+backend/certs/velbots.shop.cert
+.gitignore
+backend/certs/velbots.shop.key
