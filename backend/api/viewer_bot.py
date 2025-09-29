@@ -233,7 +233,19 @@ class ViewerBot:
     def get_url(self):
         url = ""
         try:
+            session.set_option("http-headers", {
+                "Accept-Language": "en-US,en;q=0.5",
+                "Connection": "keep-alive",
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1",
+                "User-Agent": ua.random,
+                "Client-ID": random.random(),
+                "Referer": "https://www.google.com/"
+            })
             streams = session.streams(self.channel_url)
+            if not streams:
+                logging.error("No streams found for the channel.")
+                return url
             try:
                 url = streams['audio_only'].url
             except KeyError:
