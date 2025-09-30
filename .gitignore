@@ -143,3 +143,10 @@ backend/certs/velbots.shop.cert.backup
 backend/certs/velbots.shop.cert
 .gitignore
 backend/certs/velbots.shop.key
+reliability_test_*
+ping_test_*
+correct_*
+keepalive_*
+passive_*
+twitch_player_analysis_*
+viewbot_*
