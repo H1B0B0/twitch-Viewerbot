@@ -2,6 +2,12 @@
 
 A modern web application for generating Twitch views using proxies, built with a Flask backend and React frontend.
 
+## Disclaimer
+
+⚠️ **This tool is provided for educational purposes only** ⚠️
+
+Using this software to artificially inflate viewer counts may violate Twitch's Terms of Service. The developers are not responsible for any consequences resulting from the misuse of this application.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -129,8 +135,3 @@ A modern web application for generating Twitch views using proxies, built with a
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Disclaimer
-
-⚠️ **This tool is provided for educational purposes only** ⚠️
-
-Using this software to artificially inflate viewer counts may violate Twitch's Terms of Service. The developers are not responsible for any consequences resulting from the misuse of this application.
