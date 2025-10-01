@@ -1,4 +1,5 @@
 import { Card, CardBody, Progress, Badge } from "@heroui/react";
+import { motion } from "framer-motion";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,49 +42,63 @@ interface SystemMetricsProps {
 }
 
 export const SystemMetrics = ({ metrics }: SystemMetricsProps) => {
-  const renderBasicMetric = (metric: MetricData) => (
-    <Card key={metric.label} className="border-none glass-card" shadow="sm">
-      <CardBody className="space-y-4 p-6 flex flex-col justify-between h-full relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none opacity-5">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern
-                id="microGrid"
-                width="10"
-                height="10"
-                patternUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M 10 0 L 0 0 0 10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="0.5"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#microGrid)" />
-          </svg>
-        </div>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium">{metric.label}</span>
-          <Badge>
-            {metric.value.toFixed(1)}
-            {metric.unit}
-          </Badge>
-        </div>
-        <Progress
-          value={(metric.value / metric.maxValue) * 100}
-          color={
-            (metric.value / metric.maxValue) * 100 < 30
-              ? "success"
-              : (metric.value / metric.maxValue) * 100 < 70
-              ? "warning"
-              : "danger"
-          }
-          className="mb-3"
-        />
-      </CardBody>
-    </Card>
+  const renderBasicMetric = (metric: MetricData, index: number) => (
+    <motion.div
+      key={metric.label}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.3 }}
+    >
+      <Card className="border-none glass-card" shadow="sm">
+        <CardBody className="space-y-4 p-6 flex flex-col justify-between h-full relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none opacity-5">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern
+                  id="microGrid"
+                  width="10"
+                  height="10"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 10 0 L 0 0 0 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                  />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#microGrid)" />
+            </svg>
+          </div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium">{metric.label}</span>
+            <motion.div
+              key={metric.value}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Badge>
+                {metric.value.toFixed(1)}
+                {metric.unit}
+              </Badge>
+            </motion.div>
+          </div>
+          <Progress
+            value={(metric.value / metric.maxValue) * 100}
+            color={
+              (metric.value / metric.maxValue) * 100 < 30
+                ? "success"
+                : (metric.value / metric.maxValue) * 100 < 70
+                ? "warning"
+                : "danger"
+            }
+            className="mb-3"
+          />
+        </CardBody>
+      </Card>
+    </motion.div>
   );
 
   const renderNetworkMetric = () => (
@@ -200,8 +215,8 @@ export const SystemMetrics = ({ metrics }: SystemMetricsProps) => {
           System Metrics
         </h3>
         <div className="space-y-4">
-          {renderBasicMetric(metrics.cpu)}
-          {renderBasicMetric(metrics.memory)}
+          {renderBasicMetric(metrics.cpu, 0)}
+          {renderBasicMetric(metrics.memory, 1)}
           {renderNetworkMetric()}
         </div>
       </CardBody>

@@ -1,26 +1,32 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Card, CardBody } from "@heroui/react";
+import { Card, CardBody, Spinner } from "@heroui/react";
 import { FaArrowUp, FaArrowDown, FaMinus } from "react-icons/fa";
 import { useViewerCache } from "../hooks/useViewerCache";
 import { cn } from "../utils/cn";
 
 type ViewerStatCardProps = {
   value: number;
+  isLoading?: boolean;
 };
 
-export function ViewerStatCard({ value }: ViewerStatCardProps) {
+export function ViewerStatCard({
+  value,
+  isLoading = false,
+}: ViewerStatCardProps) {
   const { previousValue, percentageChange } = useViewerCache(value);
   const difference = value - previousValue;
   const [showGlow, setShowGlow] = useState(false);
   const [addedValue, setAddedValue] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [isIncreasing, setIsIncreasing] = useState<boolean>(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (difference > 0) {
       setShowGlow(true);
       setIsIncreasing(true);
       setAddedValue(difference);
+      setIsAnimating(true);
 
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -30,7 +36,11 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
         setShowGlow(false);
         setIsIncreasing(false);
         setAddedValue(0);
-      }, 2000);
+        setIsAnimating(false);
+      }, 2500);
+    } else if (difference < 0) {
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 1000);
     }
 
     return () => {
@@ -38,7 +48,7 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [difference]); // Only depend on difference
+  }, [difference]);
 
   const getTrendColor = () => {
     if (difference > 0) return "text-green-500";
@@ -47,8 +57,9 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
   };
 
   const getTrendIcon = () => {
-    if (difference > 0) return <FaArrowUp className="w-4 h-4" />;
-    if (difference < 0) return <FaArrowDown className="w-4 h-4" />;
+    if (difference > 0) return <FaArrowUp className="w-4 h-4 animate-bounce" />;
+    if (difference < 0)
+      return <FaArrowDown className="w-4 h-4 animate-bounce" />;
     return <FaMinus className="w-4 h-4" />;
   };
 
@@ -59,8 +70,10 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
       )}
       <Card
         className={cn(
-          "relative h-full border-none bg-background/90 backdrop-blur-xl transition-all duration-300",
-          showGlow && "ring-2 ring-purple-500/50"
+          "relative h-full border-none bg-background/90 backdrop-blur-xl transition-all duration-500 ease-in-out",
+          showGlow &&
+            "ring-2 ring-purple-500/50 shadow-2xl shadow-purple-500/20",
+          isAnimating && "scale-[1.02]"
         )}
         shadow="sm"
       >
@@ -86,36 +99,48 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
               <rect width="100%" height="100%" fill="url(#microGrid)" />
             </svg>
           </div>
+
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-default-600 uppercase tracking-wider">
               Live Viewers
             </h3>
-            {showGlow && (
-              <span className="flex h-2 w-2">
-                <span className="animate-ping absolute h-2 w-2 rounded-full bg-purple-400 opacity-75" />
-                <span className="rounded-full h-2 w-2 bg-purple-500" />
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {isLoading && <Spinner size="sm" color="primary" />}
+              {showGlow && (
+                <span className="flex h-2 w-2">
+                  <span className="animate-ping absolute h-2 w-2 rounded-full bg-purple-400 opacity-75" />
+                  <span className="rounded-full h-2 w-2 bg-purple-500" />
+                </span>
+              )}
+            </div>
           </div>
+
           <div className="space-y-2">
             <div className="flex items-baseline gap-2 relative">
               <span
                 className={cn(
-                  "text-4xl font-black bg-clip-text text-transparent transition-all duration-1000",
+                  "text-4xl font-black bg-clip-text text-transparent transition-all duration-1000 ease-out",
                   showGlow
                     ? "bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 animate-gradient-x"
-                    : "bg-gradient-to-r from-purple-600 to-pink-600"
+                    : "bg-gradient-to-r from-purple-600 to-pink-600",
+                  isAnimating && "transform scale-110"
                 )}
               >
                 {value.toLocaleString()}
               </span>
               {isIncreasing && addedValue > 0 && (
-                <span className="absolute -right-12 top-0 text-xs font-medium text-purple-600 animate-fade-up">
+                <span className="absolute -right-16 top-0 text-sm font-bold text-green-500 animate-fade-up-slow">
                   +{addedValue.toLocaleString()}
                 </span>
               )}
             </div>
-            <div className={`flex items-center gap-1 ${getTrendColor()}`}>
+
+            <div
+              className={cn(
+                "flex items-center gap-1 transition-all duration-300",
+                getTrendColor()
+              )}
+            >
               {getTrendIcon()}
               <span className="text-sm font-medium">
                 {Math.abs(percentageChange).toFixed(1)}%

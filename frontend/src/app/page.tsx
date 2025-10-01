@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   CardHeader,
@@ -12,7 +12,6 @@ import {
   Tooltip,
 } from "@heroui/react";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { StatCard } from "../components/StatCard";
 import { useGetProfile, logout } from "./functions/UserAPI";
 import { useViewerCount } from "../hooks/useViewerCount";
@@ -42,9 +41,8 @@ export default function ViewerBotInterface() {
     timeout: 10000,
     stabilityMode: false,
   });
-  const { viewerCount: currentViewers } = useViewerCount(
-    config?.channelName || profile?.user?.TwitchUsername
-  );
+  const { viewerCount: currentViewers, isLoading: viewerLoading } =
+    useViewerCount(config?.channelName || profile?.user?.TwitchUsername);
 
   const [isLoading, setIsLoading] = useState(false);
   const [proxyFile, setProxyFile] = useState<File | null>(null);
@@ -117,9 +115,17 @@ export default function ViewerBotInterface() {
     },
   });
 
-  const fetchStats = async () => {
+  // Use useCallback to memoize fetchStats and prevent unnecessary re-renders
+  const fetchStatsRef = useRef<number>(0);
+  const consecutiveErrorsRef = useRef<number>(0);
+  const maxConsecutiveErrors = 5;
+
+  const fetchStats = useCallback(async () => {
     try {
       const stats = await getBotStats();
+
+      // Reset error counter on success
+      consecutiveErrorsRef.current = 0;
 
       // Ensure system_metrics exists with default values
       const system_metrics = stats.system_metrics || {
@@ -186,9 +192,9 @@ export default function ViewerBotInterface() {
         }));
 
         // Handle error states
-        if (stats.status.state === "error" && isLoading) {
+        if (stats.status.state === "error") {
           setIsLoading(false);
-          toast.error(stats.status.message);
+          toast.error(stats.status.message, { toastId: "bot-error" });
         }
       }
 
@@ -196,17 +202,37 @@ export default function ViewerBotInterface() {
       if (stats.is_running === false && isLoading) {
         setIsLoading(false);
       }
+
+      // Sync isLoading with actual bot running state
+      if (stats.is_running === true && !isLoading) {
+        setIsLoading(true);
+      }
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      consecutiveErrorsRef.current++;
+      console.error(
+        `Failed to fetch stats (${consecutiveErrorsRef.current}/${maxConsecutiveErrors}):`,
+        error
+      );
+
+      // Only show error toast if we've had too many consecutive errors
+      if (consecutiveErrorsRef.current >= maxConsecutiveErrors) {
+        toast.error(
+          "Unable to connect to the backend. Please check your connection.",
+          {
+            toastId: "backend-error",
+            autoClose: 5000,
+          }
+        );
+      }
       // Don't reset states on error - maintain previous values
     }
-  };
+  }, [isLoading]);
 
   useEffect(() => {
-    // Fetch stats immediately and then every second
+    // Fetch stats immediately and then every 1.5 seconds (reduced frequency)
     const intervalId = setInterval(() => {
       fetchStats();
-    }, 1000);
+    }, 1500);
 
     // Initial fetch
     fetchStats();
@@ -214,7 +240,7 @@ export default function ViewerBotInterface() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [isLoading]);
+  }, [fetchStats]); // Now properly depends on the memoized fetchStats
 
   useEffect(() => {
     // If profile loads and channel name is empty, set it ONLY ONCE
@@ -266,6 +292,7 @@ export default function ViewerBotInterface() {
 
   useEffect(() => {
     const checkBotStatusPeriodically = () => {
+      // Only fetch if not in transitional states
       if (
         botStatus.state.toLowerCase() !== "stopping" &&
         botStatus.state.toLowerCase() !== "starting"
@@ -276,44 +303,66 @@ export default function ViewerBotInterface() {
 
     const interval = setInterval(checkBotStatusPeriodically, 3000);
     return () => clearInterval(interval);
-  }, [botStatus]);
+  }, [botStatus.state, fetchStats]); // Added proper dependencies
 
   const handleStart = async () => {
     // Add protection to prevent starting during transitional states
     if (
       botStatus.state.toLowerCase() === "stopping" ||
-      botStatus.state.toLowerCase() === "starting"
+      botStatus.state.toLowerCase() === "starting" ||
+      isLoading
     ) {
+      toast.info("Please wait for the current operation to complete", {
+        toastId: "operation-in-progress",
+      });
       return;
     }
 
     if (!config.channelName) {
-      toast.error("Channel name or url is required");
+      toast.error("Channel name or url is required", {
+        toastId: "validation-error",
+      });
       return;
     } else if (config.threads === 0) {
-      toast.error("Threads count must be greater than 0");
+      toast.error("Threads count must be greater than 0", {
+        toastId: "validation-error",
+      });
       return;
     }
+
     try {
       setIsLoading(true);
+      setBotStatus((prev) => ({
+        ...prev,
+        state: "starting",
+        message: "Initializing bot...",
+      }));
+
       await startBot({
         channelName: config.channelName,
         threads: config.threads,
         proxyFile: proxyFile || undefined,
         timeout: config.timeout,
         proxyType: config.proxyType,
-        stabilityMode: config.stabilityMode, // Ensure stabilityMode is included
+        stabilityMode: config.stabilityMode,
       });
+
       toast.success(
-        "Bot started successfully!🚀 It may take a while before the viewers appear on the stream."
+        "Bot started successfully! 🚀 It may take a while before the viewers appear on the stream.",
+        { toastId: "bot-started", autoClose: 5000 }
       );
     } catch (err) {
-      toast.error(
-        `Failed to start bot: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
-      );
-      setIsLoading(false); // Reset loading on error
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to start bot: ${errorMessage}`, {
+        toastId: "start-error",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      setBotStatus((prev) => ({
+        ...prev,
+        state: "error",
+        message: errorMessage,
+      }));
     }
   };
 
@@ -323,21 +372,46 @@ export default function ViewerBotInterface() {
       botStatus.state.toLowerCase() === "stopping" ||
       botStatus.state.toLowerCase() === "starting"
     ) {
+      toast.info("Please wait for the current operation to complete", {
+        toastId: "operation-in-progress",
+      });
       return;
     }
 
     try {
-      setIsLoading(false); // Set loading to false immediately
+      setBotStatus((prev) => ({
+        ...prev,
+        state: "stopping",
+        message: "Stopping bot...",
+      }));
       await stopBot();
-      toast.success("Bot stopped successfully!");
+
+      setIsLoading(false);
+      setBotStatus((prev) => ({
+        ...prev,
+        state: "stopped",
+        message: "Bot stopped successfully",
+      }));
+
+      toast.success("Bot stopped successfully!", { toastId: "bot-stopped" });
+
       setStats((prevStats) => ({
         ...prevStats,
         activeThreads: 0,
         request_count: 0,
       }));
     } catch (err) {
-      toast.error("Failed to stop bot");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to stop bot: ${errorMessage}`, {
+        toastId: "stop-error",
+        autoClose: 5000,
+      });
       setIsLoading(true); // Revert loading state if stop fails
+      setBotStatus((prev) => ({
+        ...prev,
+        state: "error",
+        message: errorMessage,
+      }));
       console.error("Failed to stop bot:", err);
     }
   };
@@ -413,7 +487,10 @@ export default function ViewerBotInterface() {
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
                 <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
-                  <ViewerStatCard value={currentViewers} />
+                  <ViewerStatCard
+                    value={currentViewers}
+                    isLoading={viewerLoading}
+                  />
                 </div>
                 <div className="w-full transform hover:scale-[1.02] transition-all duration-300">
                   <StatCard
