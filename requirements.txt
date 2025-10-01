@@ -12,6 +12,8 @@ streamlink>=5.0.0
 fake-useragent>=1.1.1
 websockets>=11.0.0
 tls-client>=1.0.0
+m3u8>=3.5.0
+websocket-client>=1.5.0
 
 # Security
 PyJWT>=2.6.0

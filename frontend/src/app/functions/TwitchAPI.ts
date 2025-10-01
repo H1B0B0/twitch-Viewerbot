@@ -18,17 +18,18 @@ export async function getViewerCount(username: string): Promise<number> {
   const channelName = extractChannelName(username);
 
   try {
+    // Use ChannelShell persisted query - the correct method discovered from analysis
     const graphqlQuery = {
-      query: `
-        query GetViewerCount($login: String!) {
-          user(login: $login) {
-            stream {
-              viewersCount
-            }
-          }
-        }
-      `,
-      variables: { login: channelName },
+      operationName: "ChannelShell",
+      variables: {
+        login: channelName,
+      },
+      extensions: {
+        persistedQuery: {
+          version: 1,
+          sha256Hash: "fea4573a7bf2644f5b3f2cbbdcbee0d17312e48d2e55f080589d053aad353f11",
+        },
+      },
     };
 
     const response = await fetch("https://gql.twitch.tv/gql", {
@@ -41,7 +42,9 @@ export async function getViewerCount(username: string): Promise<number> {
     });
 
     const data = await response.json();
-    const viewersCount = data?.data?.user?.stream?.viewersCount || 0;
+
+    // Navigate the correct response structure from ChannelShell
+    const viewersCount = data?.data?.userOrError?.stream?.viewersCount || 0;
 
     return viewersCount;
   } catch (error) {

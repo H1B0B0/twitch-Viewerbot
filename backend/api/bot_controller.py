@@ -9,7 +9,7 @@ import time
 logger = logging.getLogger(__name__)
 
 # Update imports to use both ViewerBot classes
-from .viewer_bot import ViewerBot
+from api.viewer_bot_selenium import ViewerBot
 from .viewer_bot_stability import ViewerBot_Stability
 
 bot_api = Blueprint('bot_api', __name__)
@@ -172,9 +172,11 @@ def start_bot():
         file = request.files['proxyFile']
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            # Utiliser un chemin absolu
+            filepath = os.path.abspath(os.path.join(UPLOAD_FOLDER, filename))
             file.save(filepath)
             proxy_file_path = filepath
+            logger.info(f"Proxy file saved to: {proxy_file_path}")
 
     if not channel_name:
         return jsonify({'error': 'Channel name is required'}), 400
@@ -188,8 +190,10 @@ def start_bot():
         stability_mode=stability_mode
     )
 
-    if proxy_file_path and os.path.exists(proxy_file_path):
-        os.remove(proxy_file_path)
+    # NE PAS supprimer le fichier immédiatement - le bot en a besoin!
+    # Il sera supprimé plus tard ou au prochain upload
+    # if proxy_file_path and os.path.exists(proxy_file_path):
+    #     os.remove(proxy_file_path)
     
     if success:
         return jsonify({'message': 'Bot started successfully'})

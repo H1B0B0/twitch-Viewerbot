@@ -142,6 +142,21 @@ body {
   animation: fadeIn 0.5s ease-out forwards;
 }
 
+@keyframes fadeUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 1.5s ease-out forwards;
+}
+
 /* Améliorations du scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

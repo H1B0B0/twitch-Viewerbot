@@ -31,14 +31,14 @@ export function ViewerStatCard({ value }: ViewerStatCardProps) {
         setIsIncreasing(false);
         setAddedValue(0);
       }, 2000);
-
-      return () => {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-        }
-      };
     }
-  }, [value, difference]);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [difference]); // Only depend on difference
 
   const getTrendColor = () => {
     if (difference > 0) return "text-green-500";
