@@ -1,4 +1,4 @@
-# Twitch Viewer Bot
+# Twitch Viewer Bot ( BROKEN due to twitch security )
 
 A modern web application for generating Twitch views using proxies, built with a Flask backend and React frontend.
 
